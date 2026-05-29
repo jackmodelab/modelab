@@ -1,0 +1,135 @@
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { requireStaff } from '@/lib/auth/guards';
+import { createSupabaseServer } from '@/lib/supabase/server';
+
+const VALID_STATUS = new Set([
+  'confirmed',
+  'completed',
+  'cancelled_24hr_plus',
+  'cancelled_under_24hr',
+  'no_show',
+  'rescheduled',
+]);
+
+/** Read + validate the shared booking fields. Returns the row to write, or an error. */
+async function buildBookingRow(formData: FormData) {
+  const client_id = String(formData.get('client_id') ?? '');
+  const service_id = String(formData.get('service_id') ?? '');
+  const location_id = String(formData.get('location_id') ?? '');
+  const startsLocal = String(formData.get('starts_at') ?? '');
+
+  if (!client_id || !service_id || !location_id || !startsLocal) return null;
+
+  const start = new Date(startsLocal); // datetime-local is interpreted in server tz
+  if (Number.isNaN(start.getTime())) return null;
+
+  const supabase = createSupabaseServer();
+  const { data: service } = await supabase
+    .from('services')
+    .select('duration_minutes')
+    .eq('id', service_id)
+    .maybeSingle();
+  const duration = (service as { duration_minutes: number } | null)?.duration_minutes ?? 45;
+  const end = new Date(start.getTime() + duration * 60000);
+
+  return {
+    client_id,
+    service_id,
+    location_id,
+    starts_at: start.toISOString(),
+    ends_at: end.toISOString(),
+  };
+}
+
+/** Create a new booking for the signed-in trainer. */
+export async function createBooking(formData: FormData) {
+  const { staff } = await requireStaff();
+  const row = await buildBookingRow(formData);
+  if (!row) redirect('/portal/bookings/new?error=1');
+
+  const supabase = createSupabaseServer();
+  await supabase.from('bookings').insert({ ...row, staff_id: staff.id, status: 'confirmed' } as never);
+
+  revalidatePath('/portal/schedule');
+  revalidatePath('/portal');
+  redirect('/portal/schedule');
+}
+
+/** Edit an existing booking (reschedule, change service/location/status). */
+export async function updateBooking(formData: FormData) {
+  await requireStaff();
+  const id = String(formData.get('id') ?? '');
+  const row = await buildBookingRow(formData);
+  if (!id || !row) redirect('/portal/schedule');
+
+  const statusRaw = String(formData.get('status') ?? 'confirmed');
+  const status = VALID_STATUS.has(statusRaw) ? statusRaw : 'confirmed';
+
+  const supabase = createSupabaseServer();
+  await supabase
+    .from('bookings')
+    .update({ ...row, status } as never)
+    .eq('id', id);
+
+  revalidatePath('/portal/schedule');
+  revalidatePath('/portal');
+  redirect('/portal/schedule');
+}
+
+/** Add a weekly recurring availability block for the signed-in staff member. */
+export async function addAvailability(formData: FormData) {
+  const { staff } = await requireStaff();
+  const weekday = Number(formData.get('weekday'));
+  const start_time = String(formData.get('start_time') ?? '');
+  const end_time = String(formData.get('end_time') ?? '');
+  const locationRaw = String(formData.get('location_id') ?? '');
+
+  if (Number.isNaN(weekday) || !start_time || !end_time) return;
+  if (end_time <= start_time) return; // end must be after start
+
+  const supabase = createSupabaseServer();
+  await supabase.from('staff_availability').insert({
+    staff_id: staff.id,
+    weekday,
+    start_time,
+    end_time,
+    location_id: locationRaw && locationRaw !== 'any' ? locationRaw : null,
+    is_active: true,
+  } as never);
+  revalidatePath('/portal/availability');
+}
+
+export async function deleteAvailability(formData: FormData) {
+  await requireStaff();
+  const id = String(formData.get('id') ?? '');
+  if (!id) return;
+  const supabase = createSupabaseServer();
+  await supabase.from('staff_availability').delete().eq('id', id);
+  revalidatePath('/portal/availability');
+}
+
+export async function toggleAvailability(formData: FormData) {
+  await requireStaff();
+  const id = String(formData.get('id') ?? '');
+  const next = String(formData.get('next') ?? '') === 'true';
+  if (!id) return;
+  const supabase = createSupabaseServer();
+  await supabase.from('staff_availability').update({ is_active: next } as never).eq('id', id);
+  revalidatePath('/portal/availability');
+}
+
+/** Staff-initiated cancellation (no client penalty). */
+export async function cancelBooking(id: string) {
+  await requireStaff();
+  if (!id) return;
+  const supabase = createSupabaseServer();
+  await supabase
+    .from('bookings')
+    .update({ status: 'cancelled_24hr_plus', cancellation_reason: 'Cancelled by staff' } as never)
+    .eq('id', id);
+  revalidatePath('/portal/schedule');
+  revalidatePath('/portal');
+}
