@@ -37,6 +37,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_screenings: {
+        Row: {
+          id: string
+          client_id: string
+          answers: Json
+          submitted_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          answers?: Json
+          submitted_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          answers?: Json
+          submitted_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_screenings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       articles: {
         Row: {
           body: string | null

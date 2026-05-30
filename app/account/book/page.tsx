@@ -1,5 +1,7 @@
+import { redirect } from 'next/navigation';
 import { requireClient } from '@/lib/auth/guards';
 import { createSupabaseServer } from '@/lib/supabase/server';
+import { hasCompletedScreening } from '@/lib/screening/queries';
 import { BookFlow, type FlowAvailabilityBlock, type FlowCoach, type FlowLocation, type FlowService } from '@/components/account/book-flow';
 
 export const metadata = { title: 'Book a session — MODE Lab' };
@@ -11,7 +13,13 @@ function toMinutes(timeStr: string) {
 }
 
 export default async function BookPage() {
-  await requireClient();
+  const { client } = await requireClient();
+
+  // The pre-screening health questionnaire is mandatory before booking.
+  if (client && !(await hasCompletedScreening(client.id))) {
+    redirect('/account/screening');
+  }
+
   const supabase = createSupabaseServer();
 
   const [{ data: services }, { data: locations }, { data: staff }, { data: avail }] = await Promise.all([

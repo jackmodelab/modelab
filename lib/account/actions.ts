@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireClient } from '@/lib/auth/guards';
 import { createSupabaseServer } from '@/lib/supabase/server';
+import { hasCompletedScreening } from '@/lib/screening/queries';
 
 /**
  * Member-initiated booking cancellation.
@@ -52,6 +53,11 @@ export async function cancelMemberBooking(formData: FormData) {
 export async function requestBooking(formData: FormData) {
   const { client } = await requireClient();
   if (!client) redirect('/login');
+
+  // The pre-screening health questionnaire is mandatory before booking.
+  if (!(await hasCompletedScreening(client.id))) {
+    redirect('/account/screening');
+  }
 
   // Validate inputs are present — we don't write to bookings yet.
   const serviceId = String(formData.get('service_id') ?? '');

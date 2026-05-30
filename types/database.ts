@@ -24,6 +24,7 @@ export type ArticleRow = Tables['articles']['Row'];
 export type StaffAvailabilityRow = Tables['staff_availability']['Row'];
 export type ClientAssignmentRow = Tables['client_assignments']['Row'];
 export type LeadRow = Tables['leads']['Row'];
+export type ClientScreeningRow = Tables['client_screenings']['Row'];
 
 export type LocationStatus = Enums['location_status'];
 export type BookingStatus = Enums['booking_status'];
