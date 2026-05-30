@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation';
 import { requireClient } from '@/lib/auth/guards';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { hasCompletedScreening } from '@/lib/screening/queries';
@@ -15,10 +14,9 @@ function toMinutes(timeStr: string) {
 export default async function BookPage() {
   const { client } = await requireClient();
 
-  // The pre-screening health questionnaire is mandatory before booking.
-  if (client && !(await hasCompletedScreening(client.id))) {
-    redirect('/account/screening');
-  }
+  // Clients can browse services, coaches, and times freely, but the pre-screening
+  // health questionnaire must be complete before a booking can be confirmed.
+  const screeningComplete = client ? await hasCompletedScreening(client.id) : false;
 
   const supabase = createSupabaseServer();
 
@@ -87,6 +85,7 @@ export default async function BookPage() {
         locations={flowLocations}
         coaches={flowCoaches}
         availability={flowAvailability}
+        screeningComplete={screeningComplete}
       />
     </>
   );

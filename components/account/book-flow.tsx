@@ -50,11 +50,13 @@ export function BookFlow({
   locations,
   coaches,
   availability,
+  screeningComplete,
 }: {
   services: FlowService[];
   locations: FlowLocation[];
   coaches: FlowCoach[];
   availability: FlowAvailabilityBlock[];
+  screeningComplete: boolean;
 }) {
   const [step, setStep] = useState<StepIndex>(0);
   const [serviceId, setServiceId] = useState<string | null>(null);
