@@ -3,7 +3,20 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireStaff } from '@/lib/auth/guards';
-import { createSupabaseServer } from '@/lib/supabase/server';
+import { createSupabaseAdmin, createSupabaseServer } from '@/lib/supabase/server';
+import {
+  removeBookingFromCalendar,
+  syncBookingToCalendar,
+  upsertBookingCalendar,
+} from '@/lib/google/booking-sync';
+
+// Statuses where the session is off the calendar (event should be removed).
+const CANCELLED_STATUSES = new Set([
+  'cancelled_24hr_plus',
+  'cancelled_under_24hr',
+  'no_show',
+  'rescheduled',
+]);
 
 const VALID_STATUS = new Set([
   'confirmed',
@@ -51,7 +64,14 @@ export async function createBooking(formData: FormData) {
   if (!row) redirect('/portal/bookings/new?error=1');
 
   const supabase = createSupabaseServer();
-  await supabase.from('bookings').insert({ ...row, staff_id: staff.id, status: 'confirmed' } as never);
+  const { data: created } = await supabase
+    .from('bookings')
+    .insert({ ...row, staff_id: staff.id, status: 'confirmed' } as never)
+    .select('id')
+    .single();
+
+  const bookingId = (created as { id: string } | null)?.id;
+  if (bookingId) await syncBookingToCalendar(bookingId); // adds to the coach's Google Calendar
 
   revalidatePath('/portal/schedule');
   revalidatePath('/portal');
@@ -73,6 +93,14 @@ export async function updateBooking(formData: FormData) {
     .from('bookings')
     .update({ ...row, status } as never)
     .eq('id', id);
+
+  // Keep Google Calendar in step: drop the event if cancelled/no-show,
+  // otherwise patch it (or create one if the coach connected after booking).
+  if (CANCELLED_STATUSES.has(status)) {
+    await removeBookingFromCalendar(id);
+  } else {
+    await upsertBookingCalendar(id);
+  }
 
   revalidatePath('/portal/schedule');
   revalidatePath('/portal');
@@ -130,6 +158,22 @@ export async function cancelBooking(id: string) {
     .from('bookings')
     .update({ status: 'cancelled_24hr_plus', cancellation_reason: 'Cancelled by staff' } as never)
     .eq('id', id);
+  await removeBookingFromCalendar(id); // pull it off the coach's calendar
   revalidatePath('/portal/schedule');
   revalidatePath('/portal');
+}
+
+/** Disconnect the signed-in coach's Google Calendar (clears stored tokens). */
+export async function disconnectGoogleCalendar() {
+  const { staff } = await requireStaff();
+  const admin = createSupabaseAdmin();
+  await admin
+    .from('staff')
+    .update({
+      google_refresh_token: null,
+      google_calendar_email: null,
+      google_calendar_connected_at: null,
+    } as never)
+    .eq('id', staff.id);
+  revalidatePath('/portal/availability');
 }

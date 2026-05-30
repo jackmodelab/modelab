@@ -7,9 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // NOTE: the generated __InternalSupabase / PostgrestVersion key is removed by hand
-  // because it makes @supabase/ssr@0.5's bundled types resolve every table to `never`.
-  // If you regenerate with `npm run db:types`, delete that block again.
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -37,41 +39,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      client_screenings: {
-        Row: {
-          id: string
-          client_id: string
-          answers: Json
-          submitted_at: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          client_id: string
-          answers?: Json
-          submitted_at?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          client_id?: string
-          answers?: Json
-          submitted_at?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "client_screenings_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: true
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       articles: {
         Row: {
           body: string | null
@@ -364,6 +331,41 @@ export type Database = {
           },
         ]
       }
+      client_screenings: {
+        Row: {
+          answers: Json
+          client_id: string
+          created_at: string
+          id: string
+          submitted_at: string
+          updated_at: string
+        }
+        Insert: {
+          answers?: Json
+          client_id: string
+          created_at?: string
+          id?: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Update: {
+          answers?: Json
+          client_id?: string
+          created_at?: string
+          id?: string
+          submitted_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_screenings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           auth_user_id: string | null
@@ -650,6 +652,9 @@ export type Database = {
           created_at: string
           credentials: Json
           display_name: string
+          google_calendar_connected_at: string | null
+          google_calendar_email: string | null
+          google_refresh_token: string | null
           id: string
           is_active: boolean
           title: string | null
@@ -661,6 +666,9 @@ export type Database = {
           created_at?: string
           credentials?: Json
           display_name: string
+          google_calendar_connected_at?: string | null
+          google_calendar_email?: string | null
+          google_refresh_token?: string | null
           id?: string
           is_active?: boolean
           title?: string | null
@@ -672,6 +680,9 @@ export type Database = {
           created_at?: string
           credentials?: Json
           display_name?: string
+          google_calendar_connected_at?: string | null
+          google_calendar_email?: string | null
+          google_refresh_token?: string | null
           id?: string
           is_active?: boolean
           title?: string | null

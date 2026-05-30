@@ -1,6 +1,12 @@
 import { requireStaff } from '@/lib/auth/guards';
 import { createSupabaseServer } from '@/lib/supabase/server';
-import { addAvailability, deleteAvailability, toggleAvailability } from '@/lib/portal/actions';
+import {
+  addAvailability,
+  deleteAvailability,
+  disconnectGoogleCalendar,
+  toggleAvailability,
+} from '@/lib/portal/actions';
+import { googleConfigured } from '@/lib/google/oauth';
 import type { StaffAvailabilityRow } from '@/types/database';
 
 export const metadata = { title: 'Availability — MODE Lab' };
@@ -8,9 +14,24 @@ export const metadata = { title: 'Availability — MODE Lab' };
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0]; // Mon → Sun
 
-export default async function AvailabilityPage() {
+const GOOGLE_FLASH: Record<string, { tone: 'ok' | 'warn'; text: string }> = {
+  connected: { tone: 'ok', text: 'Google Calendar connected. New bookings will appear on your calendar.' },
+  denied: { tone: 'warn', text: 'Google Calendar connection was cancelled.' },
+  error: { tone: 'warn', text: 'Something went wrong connecting Google Calendar. Please try again.' },
+  unconfigured: { tone: 'warn', text: 'Google Calendar isn’t configured on the server yet.' },
+};
+
+export default async function AvailabilityPage({
+  searchParams,
+}: {
+  searchParams?: { google?: string };
+}) {
   const { staff } = await requireStaff();
   const supabase = createSupabaseServer();
+
+  const googleConnected = Boolean(staff.google_refresh_token);
+  const googleEmail = staff.google_calendar_email;
+  const flash = searchParams?.google ? GOOGLE_FLASH[searchParams.google] : undefined;
 
   const [{ data: avail }, { data: locations }] = await Promise.all([
     supabase.from('staff_availability').select('*').eq('staff_id', staff.id),
@@ -47,6 +68,70 @@ export default async function AvailabilityPage() {
         These are the recurring windows you&rsquo;re open to train. They&rsquo;ll drive the slots clients can book once
         the booking flow is live.
       </p>
+
+      {/* Google Calendar connection */}
+      <section className="surface" style={{ marginBottom: 20 }}>
+        <div className="surface-head">
+          <h2>Google Calendar</h2>
+        </div>
+        <div className="surface-body" style={{ padding: 20 }}>
+          {flash && (
+            <div
+              style={{
+                marginBottom: 14,
+                borderRadius: 10,
+                padding: '10px 14px',
+                fontSize: 13,
+                background: flash.tone === 'ok' ? '#eef7ee' : '#fff8e6',
+                border: `1px solid ${flash.tone === 'ok' ? '#bfe0bf' : '#f3e0a8'}`,
+                color: flash.tone === 'ok' ? '#2c5d2c' : '#7a5e10',
+              }}
+            >
+              {flash.text}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ fontWeight: 650, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                {googleConnected ? 'Connected' : 'Not connected'}
+                <span className={`pill ${googleConnected ? 'pill--ok' : ''}`}>
+                  {googleConnected ? 'On' : 'Off'}
+                </span>
+              </div>
+              <div style={{ color: 'var(--slate)', fontSize: 13, marginTop: 4, maxWidth: '54ch', lineHeight: 1.5 }}>
+                {googleConnected ? (
+                  <>
+                    Bookings are added to{' '}
+                    <strong>{googleEmail || 'your Google Calendar'}</strong> automatically, and clients are sent an
+                    invite.
+                  </>
+                ) : (
+                  'Connect your Google account so confirmed bookings are added to your calendar automatically, with the client invited.'
+                )}
+              </div>
+            </div>
+
+            <div>
+              {!googleConfigured() ? (
+                <span style={{ color: 'var(--slate-soft)', fontSize: 12.5 }}>
+                  Server not configured yet.
+                </span>
+              ) : googleConnected ? (
+                <form action={disconnectGoogleCalendar}>
+                  <button className="btn btn--ghost" type="submit">
+                    Disconnect
+                  </button>
+                </form>
+              ) : (
+                <a className="btn" href="/api/google/oauth/start">
+                  Connect Google Calendar
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Add a block */}
       <form action={addAvailability} className="p-form" style={{ maxWidth: 'none', display: 'grid', gridTemplateColumns: '1.2fr 0.9fr 0.9fr 1.4fr auto', gap: 14, alignItems: 'end', padding: 20, marginBottom: 20 }}>
