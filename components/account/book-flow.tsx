@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { format, addDays, isSameDay, parseISO } from 'date-fns';
 import { Icon } from '@/components/portal/icons';
@@ -292,10 +293,28 @@ export function BookFlow({
               </p>
             </div>
 
+            {!screeningComplete && (
+              <div style={{ marginTop: 20, background: '#fff8e6', border: '1px solid #f3e0a8', borderRadius: 10, padding: '14px 16px' }}>
+                <div style={{ fontWeight: 650, fontSize: 14, color: '#7a5e10' }}>
+                  Complete your pre-screening to confirm
+                </div>
+                <div style={{ fontSize: 13, color: '#8a6d1a', marginTop: 2, lineHeight: 1.5 }}>
+                  You can choose your service, coach, and time freely — but the new client health
+                  questionnaire must be completed before a booking can be confirmed.
+                </div>
+              </div>
+            )}
+
             <div style={{ marginTop: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <button className="btn" type="submit">
-                Send request <Icon.arrowR />
-              </button>
+              {screeningComplete ? (
+                <button className="btn" type="submit">
+                  Send request <Icon.arrowR />
+                </button>
+              ) : (
+                <Link className="btn" href="/account/screening">
+                  Complete pre-screening <Icon.arrowR />
+                </Link>
+              )}
               <button className="btn btn--ghost" type="button" onClick={() => setStep(2)}>
                 ← Change time
               </button>
