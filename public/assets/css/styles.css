@@ -240,6 +240,8 @@ p  { text-wrap: pretty; }
 .brand { display: flex; align-items: center; gap: 0.7rem; }
 .brand svg, .brand img { height: 26px; width: auto; }
 .brand .flask { height: 30px; }
+/* Black company wordmark in the nav */
+.brand img.brand-logo { height: 34px; }
 .nav { display: flex; align-items: center; gap: clamp(1.2rem, 0.5rem + 1.6vw, 2.4rem); }
 .nav a {
   font-family: var(--font-mono);
@@ -588,12 +590,14 @@ p  { text-wrap: pretty; }
 /* =========================================================================
    FOOTER
    ========================================================================= */
-.site-footer { background: var(--engineered-black); color: var(--on-black-dim); padding-block: clamp(3.5rem, 2.5rem + 4vw, 6rem) 2.5rem; position: relative; overflow: hidden; }
+.site-footer { background: #2b2e33; color: var(--on-black-dim); padding-block: clamp(3.5rem, 2.5rem + 4vw, 6rem) 2.5rem; position: relative; overflow: hidden; }
 .site-footer .grid-bg { background-image: linear-gradient(to right, var(--grid-on-black) 1px, transparent 1px), linear-gradient(to bottom, var(--grid-on-black) 1px, transparent 1px); }
 .footer-top { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 2rem; padding-bottom: 3rem; border-bottom: 1px solid var(--line-on-black); }
 @media (max-width: 820px) { .footer-top { grid-template-columns: 1fr 1fr; gap: 2.5rem 2rem; } }
 @media (max-width: 480px) { .footer-top { grid-template-columns: 1fr 1fr; } .footer-brandcol { grid-column: 1 / -1; } }
 .footer-brandcol .flask { height: 40px; }
+/* White company flask logo on the dark footer (source SVG is black). */
+.footer-brandcol img.footer-flask { height: 56px; width: auto; display: block; filter: brightness(0) invert(1); }
 .footer-brandcol p { margin-top: 1.2rem; max-width: 32ch; color: var(--on-black-dim); }
 .footer-tag { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--on-black); margin-top: 1.4rem; }
 .footer-col h4 { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--slate-soft); font-weight: 500; }
