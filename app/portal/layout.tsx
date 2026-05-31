@@ -2,6 +2,8 @@ import { AppFrame } from '@/components/portal/app-frame';
 import { Rail, type RailSection } from '@/components/portal/rail';
 import { StaffTopbar } from '@/components/portal/topbar';
 import { requireStaff } from '@/lib/auth/guards';
+import { createSupabaseServer } from '@/lib/supabase/server';
+import type { ClientRow } from '@/types/database';
 
 const SECTIONS: RailSection[] = [
   {
@@ -35,11 +37,20 @@ export default async function PortalLayout({ children }: { children: React.React
   const email = user.email ?? '';
   const fullName = staff.display_name || email.split('@')[0] || 'Staff';
 
+  // Lightweight client list powering the ⌘K command palette.
+  const supabase = createSupabaseServer();
+  const { data: clientRows } = await supabase.from('clients').select('id,full_name,email').order('full_name');
+  const paletteClients = ((clientRows ?? []) as Pick<ClientRow, 'id' | 'full_name' | 'email'>[]).map((c) => ({
+    id: c.id,
+    name: c.full_name || c.email,
+    email: c.email,
+  }));
+
   return (
     <AppFrame
       portal="staff"
       rail={<Rail portal="staff" sections={SECTIONS} user={{ initials: initialsFor(staff.display_name, email), fullName, email }} />}
-      topbar={<StaffTopbar />}
+      topbar={<StaffTopbar clients={paletteClients} />}
     >
       {children}
     </AppFrame>

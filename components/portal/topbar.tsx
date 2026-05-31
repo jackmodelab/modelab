@@ -1,18 +1,20 @@
 import Link from 'next/link';
 import { Icon } from './icons';
+import { CommandPalette, type PaletteClient } from './command-palette';
 
 /**
- * Staff topbar — search pill + bell + new-booking quick action.
- * The search pill is non-interactive for now (command palette lands later).
+ * Staff topbar — ⌘K command palette + bell + new-booking quick action.
  */
-export function StaffTopbar({ newBookingHref = '/portal/bookings/new' }: { newBookingHref?: string }) {
+export function StaffTopbar({
+  newBookingHref = '/portal/bookings/new',
+  clients = [],
+}: {
+  newBookingHref?: string;
+  clients?: PaletteClient[];
+}) {
   return (
     <div className="topbar">
-      <button className="search-pill" type="button" disabled aria-label="Search (coming soon)">
-        <Icon.search />
-        <span>Search clients, bookings, files…</span>
-        <span className="kbd">⌘ K</span>
-      </button>
+      <CommandPalette clients={clients} />
       <div className="topbar-right">
         <button className="icon-btn" type="button" title="Notifications" aria-label="Notifications">
           <Icon.bell />
