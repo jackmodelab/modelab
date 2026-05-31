@@ -23,17 +23,27 @@ export function googleConfigured(): boolean {
   return Boolean(process.env.GOOGLE_CALENDAR_CLIENT_ID && process.env.GOOGLE_CALENDAR_CLIENT_SECRET);
 }
 
+/**
+ * The site origin to build the redirect URI from. Prefers NEXT_PUBLIC_SITE_URL
+ * (the canonical domain) and falls back to the actual request origin — so the
+ * OAuth callback always lands on the same domain the coach is browsing, even if
+ * the env var is unset.
+ */
+export function resolveOrigin(requestOrigin: string): string {
+  const env = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '');
+  return env || requestOrigin;
+}
+
 /** The redirect URI Google calls back after consent. Must match the OAuth client config. */
-export function googleRedirectUri(): string {
-  const base = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '');
-  return `${base}/api/google/oauth/callback`;
+export function googleRedirectUri(origin: string): string {
+  return `${origin.replace(/\/$/, '')}/api/google/oauth/callback`;
 }
 
 /** Build the Google consent URL. `state` is an anti-CSRF nonce we verify on callback. */
-export function googleAuthUrl(state: string): string {
+export function googleAuthUrl(state: string, redirectUri: string): string {
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CALENDAR_CLIENT_ID!,
-    redirect_uri: googleRedirectUri(),
+    redirect_uri: redirectUri,
     response_type: 'code',
     scope: SCOPES.join(' '),
     access_type: 'offline', // ask for a refresh token
@@ -53,8 +63,11 @@ type TokenResponse = {
   token_type: string;
 };
 
-/** Exchange an authorization code for tokens (includes the refresh token). */
-export async function exchangeCodeForTokens(code: string): Promise<TokenResponse> {
+/**
+ * Exchange an authorization code for tokens (includes the refresh token).
+ * `redirectUri` must exactly match the one used to obtain the code.
+ */
+export async function exchangeCodeForTokens(code: string, redirectUri: string): Promise<TokenResponse> {
   const res = await fetch(TOKEN_ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -62,7 +75,7 @@ export async function exchangeCodeForTokens(code: string): Promise<TokenResponse
       code,
       client_id: process.env.GOOGLE_CALENDAR_CLIENT_ID!,
       client_secret: process.env.GOOGLE_CALENDAR_CLIENT_SECRET!,
-      redirect_uri: googleRedirectUri(),
+      redirect_uri: redirectUri,
       grant_type: 'authorization_code',
     }),
   });

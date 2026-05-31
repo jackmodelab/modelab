@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { requireStaff } from '@/lib/auth/guards';
 import { createSupabaseAdmin } from '@/lib/supabase/server';
-import { emailFromIdToken, exchangeCodeForTokens } from '@/lib/google/oauth';
+import { emailFromIdToken, exchangeCodeForTokens, googleRedirectUri, resolveOrigin } from '@/lib/google/oauth';
 
 // Google redirects here after consent. We verify the state nonce, exchange the
 // code for tokens, and persist the coach's refresh token via the service-role
@@ -13,7 +13,7 @@ const STATE_PATH = '/api/google/oauth';
 
 export async function GET(request: NextRequest) {
   const { staff } = await requireStaff();
-  const origin = process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin;
+  const origin = resolveOrigin(request.nextUrl.origin);
 
   const back = (status: string) => {
     const res = NextResponse.redirect(new URL(`/portal/availability?google=${status}`, origin));
@@ -30,7 +30,8 @@ export async function GET(request: NextRequest) {
   if (!code || !state || !cookieState || state !== cookieState) return back('error');
 
   try {
-    const tokens = await exchangeCodeForTokens(code);
+    // redirect_uri must exactly match the one used in the consent request.
+    const tokens = await exchangeCodeForTokens(code, googleRedirectUri(origin));
 
     const update: {
       google_calendar_email: string | null;
