@@ -40,7 +40,8 @@
       '<header class="site-header" id="siteHeader">' +
         '<div class="container header-inner">' +
           '<a class="brand" href="index.html" aria-label="MODE Lab home">' +
-            '<img src="assets/img/logo-black.svg" class="brand-logo" alt="MODE Lab" />' +
+            '<img src="assets/img/flask-logo.svg" class="brand-flask" alt="" />' +
+            '<span class="mono brand-word">MODE&nbsp;LAB</span>' +
           "</a>" +
           '<nav class="nav" id="primaryNav" aria-label="Primary">' + links + "</nav>" +
           '<div class="header-cta">' +
@@ -62,7 +63,7 @@
           '<div class="footer-top">' +
             '<div class="footer-brandcol">' +
               '<a class="brand" href="index.html" aria-label="MODE Lab home">' +
-                '<img src="assets/img/flask-logo.svg" class="footer-flask" alt="MODE Lab" />' +
+                '<img src="assets/img/logo-black.svg" class="footer-wordmark" alt="MODE Lab" />' +
               "</a>" +
               "<p>Medical-grade fitness. We apply the rigour of exercise science and engineering principles to human health &mdash; measured, managed, and built to last.</p>" +
               '<div class="footer-tag">Metabolic &middot; Optimisation &middot; Design Engineering</div>' +
