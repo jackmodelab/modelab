@@ -242,7 +242,7 @@ p  { text-wrap: pretty; }
 .brand .flask { height: 30px; }
 /* Nav: black flask mark + MODE LAB wordmark text */
 .brand img.brand-flask { height: 32px; }
-.brand .brand-word { font-family: var(--font-mono); font-size: 0.82rem; letter-spacing: 0.22em; color: var(--engineered-black); }
+.brand .brand-word { font-family: var(--font-mono); font-size: 0.98rem; letter-spacing: 0.2em; color: var(--engineered-black); }
 .nav { display: flex; align-items: center; gap: clamp(1.2rem, 0.5rem + 1.6vw, 2.4rem); }
 .nav a {
   font-family: var(--font-mono);
