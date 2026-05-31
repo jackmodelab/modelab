@@ -163,6 +163,23 @@ export async function cancelBooking(id: string) {
   revalidatePath('/portal');
 }
 
+/** Save the signed-in coach's profile (display name, title, bio). */
+export async function updateStaffProfile(formData: FormData) {
+  const { staff } = await requireStaff();
+  const display_name = String(formData.get('display_name') ?? '').trim().slice(0, 120);
+  const title = String(formData.get('title') ?? '').trim().slice(0, 120);
+  const bio = String(formData.get('bio') ?? '').trim().slice(0, 2000);
+
+  const supabase = createSupabaseServer();
+  await supabase
+    .from('staff')
+    .update({ display_name: display_name || staff.display_name, title: title || null, bio: bio || null } as never)
+    .eq('id', staff.id);
+
+  revalidatePath('/portal/profile');
+  revalidatePath('/portal');
+}
+
 /** Disconnect the signed-in coach's Google Calendar (clears stored tokens). */
 export async function disconnectGoogleCalendar() {
   const { staff } = await requireStaff();
@@ -175,5 +192,5 @@ export async function disconnectGoogleCalendar() {
       google_calendar_connected_at: null,
     } as never)
     .eq('id', staff.id);
-  revalidatePath('/portal/availability');
+  revalidatePath('/portal/profile');
 }

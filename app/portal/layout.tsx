@@ -21,6 +21,12 @@ const SECTIONS: RailSection[] = [
       { href: '/portal/files',        label: 'Files',        icon: 'file' },
     ],
   },
+  {
+    label: 'Account',
+    items: [
+      { href: '/portal/profile',      label: 'Profile',      icon: 'user' },
+    ],
+  },
 ];
 
 function initialsFor(input: string | null | undefined, email: string) {

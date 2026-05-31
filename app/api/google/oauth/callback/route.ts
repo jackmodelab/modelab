@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   const origin = resolveOrigin(request.nextUrl.origin);
 
   const back = (status: string) => {
-    const res = NextResponse.redirect(new URL(`/portal/availability?google=${status}`, origin));
+    const res = NextResponse.redirect(new URL(`/portal/profile?google=${status}`, origin));
     res.cookies.set(STATE_COOKIE, '', { path: STATE_PATH, maxAge: 0 });
     return res;
   };

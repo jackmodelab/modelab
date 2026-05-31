@@ -72,6 +72,28 @@ export default async function ProfilePage() {
         <div className="stack">
           <section className="surface">
             <div className="surface-head">
+              <h2>Google Calendar</h2>
+              <span className="pill pill--ok">On</span>
+            </div>
+            <div className="surface-body--pad">
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <Icon.calendar />
+                <div>
+                  <div style={{ fontWeight: 500, fontSize: 13.5 }}>Sessions sync automatically</div>
+                  <div style={{ color: 'var(--slate)', fontSize: 13, marginTop: 4, lineHeight: 1.5 }}>
+                    Every confirmed booking is sent to you as a calendar invite — accept it once and your sessions
+                    appear in Google Calendar (or any calendar app), with reminders.
+                  </div>
+                </div>
+              </div>
+              <p style={{ marginTop: 14, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--slate-soft)', letterSpacing: '0.04em' }}>
+                Invites go to {user.email ?? client.email}.
+              </p>
+            </div>
+          </section>
+
+          <section className="surface">
+            <div className="surface-head">
               <h2>Emergency contact</h2>
             </div>
             <div className="surface-body--pad">

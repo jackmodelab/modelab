@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   const origin = resolveOrigin(request.nextUrl.origin);
 
   if (!googleConfigured()) {
-    return NextResponse.redirect(new URL('/portal/availability?google=unconfigured', origin));
+    return NextResponse.redirect(new URL('/portal/profile?google=unconfigured', origin));
   }
 
   const state = crypto.randomUUID();
