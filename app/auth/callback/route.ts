@@ -8,7 +8,9 @@ import { createSupabaseServer } from '@/lib/supabase/server';
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/account';
+  // Reject off-site redirect targets (`//evil.com`, `/\evil.com`) — open-redirect defence.
+  const raw = searchParams.get('next') ?? '/account';
+  const next = raw.startsWith('/') && !raw.startsWith('//') && !raw.startsWith('/\\') ? raw : '/account';
 
   if (code) {
     const supabase = createSupabaseServer();

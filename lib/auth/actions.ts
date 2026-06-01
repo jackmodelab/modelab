@@ -24,7 +24,10 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
   if (error) return { error: error.message };
 
   // Decide destination: explicit ?next wins, else route by role.
-  let destination = next && next.startsWith('/') ? next : '';
+  // Reject protocol-relative (`//evil.com`) and backslash (`/\evil.com`) values that
+  // browsers treat as off-site — an open-redirect/phishing vector after login.
+  const safeNext = next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\');
+  let destination = safeNext ? next : '';
   if (!destination) {
     const { data: staff } = await supabase
       .from('staff')
