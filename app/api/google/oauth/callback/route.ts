@@ -36,17 +36,25 @@ export async function GET(request: NextRequest) {
     const update: {
       google_calendar_email: string | null;
       google_calendar_connected_at: string;
-      google_refresh_token?: string;
     } = {
       google_calendar_email: emailFromIdToken(tokens.id_token),
       google_calendar_connected_at: new Date().toISOString(),
     };
-    // Google only returns a refresh token on (re)consent — keep the existing one
-    // if this response didn't include one.
-    if (tokens.refresh_token) update.google_refresh_token = tokens.refresh_token;
 
     const admin = createSupabaseAdmin();
     await admin.from('staff').update(update as never).eq('id', staff.id);
+
+    // The refresh token lives in the service-role-only staff_google_credentials
+    // table (never the public-readable staff table). Google only returns a
+    // refresh token on (re)consent — only upsert when this response had one.
+    if (tokens.refresh_token) {
+      await admin
+        .from('staff_google_credentials')
+        .upsert(
+          { staff_id: staff.id, refresh_token: tokens.refresh_token },
+          { onConflict: 'staff_id' }
+        );
+    }
 
     return back('connected');
   } catch (err) {

@@ -184,10 +184,10 @@ export async function updateStaffProfile(formData: FormData) {
 export async function disconnectGoogleCalendar() {
   const { staff } = await requireStaff();
   const admin = createSupabaseAdmin();
+  await admin.from('staff_google_credentials').delete().eq('staff_id', staff.id);
   await admin
     .from('staff')
     .update({
-      google_refresh_token: null,
       google_calendar_email: null,
       google_calendar_connected_at: null,
     } as never)

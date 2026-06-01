@@ -5,8 +5,51 @@
  * This file re-exports `Database` and exposes the `*Row` / enum aliases the app
  * imports, so application code stays readable.
  */
-export type { Database, Json } from './database.generated';
-import type { Database } from './database.generated';
+export type { Json } from './database.generated';
+import type { Database as Generated } from './database.generated';
+
+/**
+ * TEMPORARY type bridge for `staff_google_credentials` (migration
+ * 20260601090000). The table isn't in database.generated.ts yet because that
+ * file is regenerated from a linked Supabase project. Once you run
+ * `npm run db:types`, delete this augmentation and restore the simple
+ * `export type { Database } from './database.generated'` re-export.
+ */
+export type Database = Generated & {
+  public: Generated['public'] & {
+    Tables: Generated['public']['Tables'] & {
+      staff_google_credentials: {
+        Row: {
+          staff_id: string;
+          refresh_token: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          staff_id: string;
+          refresh_token: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          staff_id?: string;
+          refresh_token?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'staff_google_credentials_staff_id_fkey';
+            columns: ['staff_id'];
+            isOneToOne: true;
+            referencedRelation: 'staff';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+    };
+  };
+};
 
 type Tables = Database['public']['Tables'];
 type Enums = Database['public']['Enums'];

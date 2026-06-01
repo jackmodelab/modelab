@@ -38,14 +38,18 @@ async function loadBookingContext(bookingId: string): Promise<BookingContext | n
     .maybeSingle();
   if (!booking) return null;
 
-  const [{ data: client }, { data: service }, { data: location }, { data: staff }] = await Promise.all([
+  const [{ data: client }, { data: service }, { data: location }, { data: cred }] = await Promise.all([
     admin.from('clients').select('full_name, email, phone').eq('id', booking.client_id).maybeSingle(),
     admin.from('services').select('name').eq('id', booking.service_id).maybeSingle(),
     admin.from('locations').select('name, address, suburb').eq('id', booking.location_id).maybeSingle(),
-    admin.from('staff').select('google_refresh_token').eq('id', booking.staff_id).maybeSingle(),
+    admin
+      .from('staff_google_credentials')
+      .select('refresh_token')
+      .eq('staff_id', booking.staff_id)
+      .maybeSingle(),
   ]);
 
-  const refreshToken = staff?.google_refresh_token;
+  const refreshToken = cred?.refresh_token;
   if (!refreshToken) return null; // coach hasn't connected their calendar
 
   const clientName = client?.full_name?.trim() || client?.email || 'Client';
@@ -141,15 +145,15 @@ export async function removeBookingFromCalendar(bookingId: string): Promise<void
     .maybeSingle();
   if (!booking?.google_calendar_event_id) return;
 
-  const { data: staff } = await admin
-    .from('staff')
-    .select('google_refresh_token')
-    .eq('id', booking.staff_id)
+  const { data: cred } = await admin
+    .from('staff_google_credentials')
+    .select('refresh_token')
+    .eq('staff_id', booking.staff_id)
     .maybeSingle();
-  if (!staff?.google_refresh_token) return;
+  if (!cred?.refresh_token) return;
 
   try {
-    await deleteCalendarEvent(staff.google_refresh_token, booking.google_calendar_event_id);
+    await deleteCalendarEvent(cred.refresh_token, booking.google_calendar_event_id);
     await storeEventId(bookingId, null);
   } catch (err) {
     console.warn(`[google-calendar] failed to remove event for booking ${bookingId}:`, err);

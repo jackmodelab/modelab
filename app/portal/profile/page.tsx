@@ -20,7 +20,10 @@ export default async function StaffProfilePage({
 }) {
   const { user, staff } = await requireStaff();
 
-  const googleConnected = Boolean(staff.google_refresh_token);
+  // The refresh token moved to the service-role-only staff_google_credentials
+  // table, so it's no longer on `staff`. connected_at is set on connect and
+  // cleared on disconnect, so it's the right "connected" signal here.
+  const googleConnected = Boolean(staff.google_calendar_connected_at);
   const googleEmail = staff.google_calendar_email;
   const connectedAt = staff.google_calendar_connected_at;
   const flash = searchParams?.google ? GOOGLE_FLASH[searchParams.google] : undefined;
