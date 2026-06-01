@@ -7,6 +7,34 @@ import { createSupabaseAdmin, createSupabaseServer } from '@/lib/supabase/server
 import { hasCompletedScreening } from '@/lib/screening/queries';
 import { removeBookingFromCalendar, syncBookingToCalendar } from '@/lib/google/booking-sync';
 
+/** Minutes since midnight for a 'HH:MM' / 'HH:MM:SS' time string. */
+function timeToMinutes(time: string): number {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + (m || 0);
+}
+
+/**
+ * Weekday (0=Sun..6=Sat) and minute-of-day for an instant, evaluated in the
+ * clinic's timezone. Availability is stored as clinic wall-clock time, so we
+ * must compare against the same zone — not the server's (UTC on Vercel).
+ */
+function clinicWeekdayMinute(date: Date): { weekday: number; minute: number } {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Australia/Sydney',
+      weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })
+      .formatToParts(date)
+      .map((p) => [p.type, p.value]),
+  ) as Record<string, string>;
+  const weekdays: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const hour = Number(parts.hour) % 24; // some runtimes emit '24' at midnight
+  return { weekday: weekdays[parts.weekday] ?? -1, minute: hour * 60 + Number(parts.minute) };
+}
+
 /**
  * Member-initiated booking cancellation.
  * Applies the 24-hour policy: ≥24hr ahead → `cancelled_24hr_plus` (credit returns);
@@ -73,15 +101,43 @@ export async function requestBooking(formData: FormData) {
   if (Number.isNaN(start.getTime())) redirect('/account/book?error=missing');
 
   // Service-role client: bypasses RLS for the member insert (clients can't
-  // insert into bookings directly) and reads the service duration.
+  // insert into bookings directly). The form-supplied ids are untrusted, so we
+  // verify each references an ACTIVE row and the slot sits inside the coach's
+  // published availability — otherwise a forged form could create an incoherent
+  // booking (inactive coach/service/location, or an out-of-hours slot).
   const admin = createSupabaseAdmin();
-  const { data: service } = await admin
-    .from('services')
-    .select('duration_minutes')
-    .eq('id', serviceId)
-    .maybeSingle();
-  const duration = (service as { duration_minutes: number } | null)?.duration_minutes ?? 45;
+  const [{ data: service }, { data: location }, { data: coach }, { data: availability }] =
+    await Promise.all([
+      admin.from('services').select('duration_minutes, is_active').eq('id', serviceId).maybeSingle(),
+      admin.from('locations').select('status').eq('id', locationId).maybeSingle(),
+      admin.from('staff').select('is_active').eq('id', coachId).maybeSingle(),
+      admin
+        .from('staff_availability')
+        .select('weekday, start_time, end_time, location_id, is_active')
+        .eq('staff_id', coachId),
+    ]);
+
+  if (!service?.is_active || location?.status !== 'active' || !coach?.is_active) {
+    redirect('/account/book?error=invalid');
+  }
+
+  const duration = service.duration_minutes ?? 45;
   const end = new Date(start.getTime() + duration * 60000);
+
+  // Slot must fall entirely within one of the coach's active availability blocks
+  // for this location (mirrors the booking UI; evaluated in clinic timezone).
+  const { weekday, minute: slotMin } = clinicWeekdayMinute(start);
+  const fitsAvailability = (availability ?? []).some(
+    (b) =>
+      b.is_active &&
+      b.weekday === weekday &&
+      (b.location_id === null || b.location_id === locationId) &&
+      timeToMinutes(b.start_time) <= slotMin &&
+      slotMin + duration <= timeToMinutes(b.end_time),
+  );
+  if (!fitsAvailability) {
+    redirect('/account/book?error=unavailable');
+  }
 
   const { data: created } = await admin
     .from('bookings')
