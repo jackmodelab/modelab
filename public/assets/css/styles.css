@@ -344,6 +344,10 @@ p  { text-wrap: pretty; }
 }
 .hero-figure .flask-mark { width: 100%; height: auto; }
 .hero-figure .flask-mark path { fill: var(--engineered-black); }
+/* Company flask logo (img) in the hero figure — black on the light page */
+.hero-figure .flask-mark .flask-img { display: block; width: 100%; height: auto; }
+/* Flask logo inside the dark "site in planning" pin — recoloured white */
+.pin .flask .flask-img { display: block; height: 34px; width: auto; filter: brightness(0) invert(1); }
 .hero-figure .ring {
   position: absolute; inset: -8%;
   border: 1px solid var(--line); border-radius: 50%;

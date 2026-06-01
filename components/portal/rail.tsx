@@ -43,7 +43,10 @@ export function Rail({
   return (
     <aside className="rail" aria-label="Primary">
       <div className="rail-brand">
-        <div className="rail-mark">M</div>
+        <div className="rail-mark">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/assets/img/flask-logo.svg" alt="" aria-hidden="true" />
+        </div>
         <div className="rail-brand-text">
           <span className="name">MODE LAB</span>
           <span className="sub">{portal === 'staff' ? 'Staff' : 'Member'}</span>

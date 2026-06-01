@@ -116,6 +116,7 @@
   display: grid; place-items: center;
   font-family: var(--font-mono); font-weight: 700; font-size: 13px;
 }
+.rail-mark img { width: 18px; height: 18px; filter: brightness(0) invert(1); } /* white flask on dark badge */
 .rail-brand-text { display: flex; flex-direction: column; line-height: 1.1; }
 .rail-brand-text .name { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.12em; font-weight: 600; }
 .rail-brand-text .sub { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.2em; color: var(--slate-soft); text-transform: uppercase; margin-top: 3px; }

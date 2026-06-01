@@ -113,7 +113,7 @@
 
   /* fill any flask placeholders left in page markup */
   Array.prototype.forEach.call(document.querySelectorAll("[data-flask]"), function (el) {
-    el.innerHTML = FLASK;
+    el.innerHTML = '<img src="assets/img/flask-logo.svg" class="flask-img" alt="" />';
   });
 
   /* ---- Mobile nav toggle ------------------------------------------------ */
