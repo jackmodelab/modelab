@@ -82,6 +82,10 @@ const FLASK_OUTLINE_PATH =
   '-0.02456,-0.842077 -0.03661,-1.685617 0.0039,-2.527344 ' +
   '15.01888,-0.01237 30.03776,-0.02474 45.05664,-0.03711 l 0.0055,0.09985 z';
 
+/* ─── Tunable constants ──────────────────────────────────────────────────── */
+const LIQUID_COLOR = '#B07A3F'; // brand accent (was #F4F5F5)
+const FADE_MS = 850; // must match the container's opacity transition
+
 /* ─── Easing ─────────────────────────────────────────────────────────────── */
 function easeInOutCubic(t: number) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -114,8 +118,24 @@ export function SplashScreen() {
   const liquidRef = useRef<SVGPathElement>(null);
   const splashRef = useRef<HTMLDivElement>(null);
   const animRef = useRef<number>(0);
+  const finishingRef = useRef(false);
   const [showText, setShowText] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  // Fade the overlay out and unmount. Shared by the timed end-of-hold and the
+  // skip button; guarded so it can only run once.
+  const finish = useCallback(() => {
+    if (finishingRef.current) return;
+    finishingRef.current = true;
+    cancelAnimationFrame(animRef.current);
+    if (splashRef.current) splashRef.current.style.opacity = '0';
+    setTimeout(() => {
+      try {
+        sessionStorage.setItem('modeSplashDone', '1');
+      } catch {}
+      setMounted(false);
+    }, FADE_MS);
+  }, []);
 
   const startAnimation = useCallback(() => {
     let startTime: number | null = null;
@@ -160,14 +180,7 @@ export function SplashScreen() {
           if (ts2 - holdStart < HOLD_MS) {
             animRef.current = requestAnimationFrame(holdPhase);
           } else {
-            // Fade out
-            if (splashRef.current) {
-              splashRef.current.style.opacity = '0';
-            }
-            setTimeout(() => {
-              try { sessionStorage.setItem('modeSplashDone', '1'); } catch {}
-              setMounted(false);
-            }, 850);
+            finish();
           }
         }
 
@@ -176,7 +189,7 @@ export function SplashScreen() {
     }
 
     animRef.current = requestAnimationFrame(fillPhase);
-  }, []);
+  }, [finish]);
 
   useEffect(() => {
     // Only show once per browser session
@@ -221,10 +234,11 @@ export function SplashScreen() {
         transition: 'opacity 0.85s cubic-bezier(0.22, 1, 0.36, 1)',
         userSelect: 'none',
       }}
-      aria-hidden="true"
+      role="dialog"
+      aria-label="MODE Lab intro"
     >
       {/* Flask SVG */}
-      <div style={{ width: 160, flexShrink: 0 }}>
+      <div style={{ width: 160, flexShrink: 0 }} aria-hidden="true">
         <svg
           viewBox="0 0 91.238716 121.6098"
           width="100%"
@@ -243,7 +257,7 @@ export function SplashScreen() {
 
           {/* ── Liquid layer (behind the flask outline) ── */}
           <g clipPath="url(#modeFlaskClip)">
-            <path ref={liquidRef} fill="#F4F5F5" d="" />
+            <path ref={liquidRef} fill={LIQUID_COLOR} d="" />
           </g>
 
           {/* ── Flask outline (sits on top of the liquid) ── */}
@@ -272,6 +286,7 @@ export function SplashScreen() {
           transform: showText ? 'translateY(0)' : 'translateY(6px)',
           transition: 'opacity 0.55s ease, transform 0.55s ease',
         }}
+        aria-hidden="true"
       >
         MODE Lab
       </div>
@@ -289,9 +304,35 @@ export function SplashScreen() {
           opacity: showText ? 1 : 0,
           transition: 'opacity 0.55s ease 0.25s',
         }}
+        aria-hidden="true"
       >
         Medical Grade Fitness
       </div>
+
+      {/* Skip — jumps straight to the fade-out */}
+      <button
+        type="button"
+        onClick={finish}
+        aria-label="Skip intro"
+        style={{
+          position: 'absolute',
+          bottom: 28,
+          right: 28,
+          padding: '7px 14px',
+          background: 'transparent',
+          border: '1px solid rgba(244, 245, 245, 0.22)',
+          borderRadius: 999,
+          color: '#8B9099',
+          fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+          fontWeight: 600,
+          fontSize: '0.6rem',
+          letterSpacing: '0.22em',
+          textTransform: 'uppercase',
+          cursor: 'pointer',
+        }}
+      >
+        Skip
+      </button>
     </div>
   );
 }

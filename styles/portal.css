@@ -308,6 +308,10 @@
 .app .btn--accent:hover { opacity: 0.9; }
 .app .btn--block { width: 100%; }
 
+/* Document download button + inline failure note (private-bucket signed URL) */
+.app .file-download { display: inline-flex; align-items: center; gap: 8px; }
+.app .file-download-error { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.04em; color: var(--danger); }
+
 .app .link-arrow {
   font-family: var(--font-mono); font-size: 11px;
   letter-spacing: 0.14em; text-transform: uppercase;

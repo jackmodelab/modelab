@@ -204,6 +204,37 @@ export async function updateStaffProfile(formData: FormData) {
   revalidatePath('/portal');
 }
 
+/**
+ * Mint a short-lived signed URL for a client document so staff can download it.
+ * Files live in the private Supabase Storage `client-files` bucket and have no
+ * public URL — the only way to hand one to the browser is a signed URL minted
+ * server-side from the row's `storage_path`. Returns `{ error }` (never throws)
+ * so the client button can surface a graceful message on dummy/missing objects.
+ */
+export async function getDocumentSignedUrl(
+  documentId: string,
+): Promise<{ url: string } | { error: string }> {
+  await requireStaff();
+  if (!documentId) return { error: 'Missing document.' };
+
+  const supabase = createSupabaseServer();
+  const { data: doc } = await supabase
+    .from('documents')
+    .select('storage_path')
+    .eq('id', documentId)
+    .maybeSingle();
+
+  const storagePath = (doc as { storage_path: string } | null)?.storage_path;
+  if (!storagePath) return { error: 'File not found.' };
+
+  const { data, error } = await supabase.storage
+    .from('client-files')
+    .createSignedUrl(storagePath, 60, { download: true }); // 60s, forces a download
+
+  if (error || !data?.signedUrl) return { error: 'File unavailable.' };
+  return { url: data.signedUrl };
+}
+
 /** Disconnect the signed-in coach's Google Calendar (clears stored tokens). */
 export async function disconnectGoogleCalendar() {
   const { staff } = await requireStaff();

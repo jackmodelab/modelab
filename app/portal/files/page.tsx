@@ -3,6 +3,7 @@ import { format, parseISO } from 'date-fns';
 import { requireStaff } from '@/lib/auth/guards';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { Icon } from '@/components/portal/icons';
+import { FileDownload } from '@/components/portal/file-download';
 import type { DocumentRow, ClientRow } from '@/types/database';
 
 export const metadata = { title: 'Files — MODE Lab' };
@@ -79,9 +80,7 @@ export default async function FilesPage({ searchParams }: { searchParams: { clie
                 </div>
                 <div className="ri-actions">
                   <span className="pill">{f.file_type ?? 'FILE'}</span>
-                  <button className="btn btn--mini btn--ghost" type="button" disabled title="Download — coming soon">
-                    <Icon.download /> Download
-                  </button>
+                  <FileDownload documentId={f.id} />
                 </div>
               </div>
             ))
@@ -90,7 +89,7 @@ export default async function FilesPage({ searchParams }: { searchParams: { clie
       </section>
 
       <p style={{ marginTop: 14, color: 'var(--slate-soft)', fontSize: 11, letterSpacing: '0.04em', fontFamily: 'var(--font-mono)' }}>
-        Upload + signed-URL download land in the next release (Supabase Storage <code>client-files</code> bucket).
+        Upload lands in the next release. Download mints a short-lived signed URL from the Supabase Storage <code>client-files</code> bucket.
       </p>
     </>
   );
