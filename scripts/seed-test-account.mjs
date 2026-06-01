@@ -15,13 +15,27 @@ const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CLIENT_EMAIL = process.env.TEST_CLIENT_EMAIL || 'client@modelab.test';
 const STAFF_EMAIL = process.env.TEST_STAFF_EMAIL || 'jack@modelab.test';
-const CLIENT_PW = process.env.TEST_CLIENT_PASSWORD || 'ModeLab!2026';
-const STAFF_PW = process.env.TEST_STAFF_PASSWORD || 'ModeLab!2026';
+const CLIENT_PW = process.env.TEST_CLIENT_PASSWORD;
+const STAFF_PW = process.env.TEST_STAFF_PASSWORD;
 
 if (!URL || !SERVICE_KEY || URL.includes('placeholder')) {
   console.error('\n✗ Supabase is not configured yet.');
   console.error('  Fill NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env.local,');
   console.error('  apply the migrations, then re-run `npm run seed:test`.\n');
+  process.exit(1);
+}
+
+// No baked-in default password — the caller must supply explicit test creds.
+if (!CLIENT_PW || !STAFF_PW) {
+  console.error('\n✗ Set TEST_CLIENT_PASSWORD and TEST_STAFF_PASSWORD in .env.local before seeding.\n');
+  process.exit(1);
+}
+
+// Refuse to seed anything that isn't a local Supabase instance. This script
+// creates an ACTIVE staff login; running it against prod/staging would plant a
+// known-credential account in real client data.
+if (!/localhost|127\.0\.0\.1|kong:8000/.test(URL)) {
+  console.error('\n✗ Refusing to seed: this is not a local Supabase URL. Seeding is for local dev only.\n');
   process.exit(1);
 }
 
