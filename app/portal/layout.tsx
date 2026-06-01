@@ -1,6 +1,8 @@
+import { Suspense } from 'react';
 import { AppFrame } from '@/components/portal/app-frame';
 import { Rail, type RailSection } from '@/components/portal/rail';
 import { StaffTopbar } from '@/components/portal/topbar';
+import { RouteToast } from '@/components/portal/route-toast';
 import { requireStaff } from '@/lib/auth/guards';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import type { ClientRow } from '@/types/database';
@@ -59,6 +61,9 @@ export default async function PortalLayout({ children }: { children: React.React
       topbar={<StaffTopbar clients={paletteClients} />}
     >
       {children}
+      <Suspense fallback={null}>
+        <RouteToast />
+      </Suspense>
     </AppFrame>
   );
 }

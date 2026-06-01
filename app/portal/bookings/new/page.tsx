@@ -6,13 +6,13 @@ import type { ClientRow } from '@/types/database';
 
 export const metadata = { title: 'New booking — MODE Lab' };
 
-export default async function NewBookingPage() {
+export default async function NewBookingPage({ searchParams }: { searchParams: { error?: string } }) {
   await requireStaff();
   const supabase = createSupabaseServer();
 
   const [{ data: clients }, { data: services }, { data: locations }] = await Promise.all([
     supabase.from('clients').select('id,full_name,email').order('full_name', { ascending: true }),
-    supabase.from('services').select('id,name').eq('is_active', true).order('sort_order', { ascending: true }),
+    supabase.from('services').select('id,name,duration_minutes').eq('is_active', true).order('sort_order', { ascending: true }),
     supabase.from('locations').select('id,name,suburb').order('name', { ascending: true }),
   ]);
 
@@ -20,7 +20,9 @@ export default async function NewBookingPage() {
     id: c.id,
     name: c.full_name || c.email,
   }));
-  const serviceOpts = ((services ?? []) as { id: string; name: string }[]).map((s) => ({ id: s.id, name: s.name }));
+  const serviceRows = (services ?? []) as { id: string; name: string; duration_minutes: number | null }[];
+  const serviceOpts = serviceRows.map((s) => ({ id: s.id, name: s.name }));
+  const serviceDurations = Object.fromEntries(serviceRows.map((s) => [s.id, s.duration_minutes ?? 45]));
   const locationOpts = ((locations ?? []) as { id: string; name: string; suburb: string | null }[]).map((l) => ({
     id: l.id,
     name: l.suburb || l.name,
@@ -40,7 +42,19 @@ export default async function NewBookingPage() {
         </div>
       </header>
 
-      <BookingForm mode="create" clients={clientOpts} services={serviceOpts} locations={locationOpts} />
+      {searchParams.error && (
+        <div className="p-form-banner" role="alert">
+          Couldn’t create that booking — please check the client, service, location and start time, then try again.
+        </div>
+      )}
+
+      <BookingForm
+        mode="create"
+        clients={clientOpts}
+        services={serviceOpts}
+        locations={locationOpts}
+        serviceDurations={serviceDurations}
+      />
     </>
   );
 }

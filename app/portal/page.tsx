@@ -22,7 +22,7 @@ export default async function PortalPage() {
 
   const [{ data: clients }, { data: weekBookings }, { data: avail }, { data: docs }, { data: services }, { data: locations }] =
     await Promise.all([
-      supabase.from('clients').select('*').order('created_at', { ascending: false }),
+      supabase.from('clients').select('*').order('full_name', { ascending: true }),
       supabase
         .from('bookings')
         .select('*')
@@ -105,7 +105,13 @@ export default async function PortalPage() {
           </div>
           <div className="timeline">
             {today.length === 0 ? (
-              <p className="empty">Nothing booked today.</p>
+              <div className="next-empty">
+                <h2>Nothing booked today.</h2>
+                <p>Your day is clear. Create a session to fill it in.</p>
+                <Link className="btn" href="/portal/bookings/new">
+                  <Icon.plus /> New booking
+                </Link>
+              </div>
             ) : (
               today.map((b) => {
                 const dt = parseISO(b.starts_at);
@@ -146,7 +152,13 @@ export default async function PortalPage() {
           </div>
           <div className="surface-body">
             {availability.length === 0 ? (
-              <p className="empty">No availability set.</p>
+              <div className="next-empty">
+                <h2>No availability set.</h2>
+                <p>Add weekly blocks so clients know when you’re open.</p>
+                <Link className="btn" href="/portal/availability">
+                  Set availability <Icon.arrowR />
+                </Link>
+              </div>
             ) : (
               availability.slice(0, 6).map((a) => (
                 <div className="row-item" key={a.id}>
@@ -191,7 +203,10 @@ export default async function PortalPage() {
                       {serviceName.get(b.service_id) ?? 'Session'} · {locationName.get(b.location_id) ?? '—'}
                     </div>
                   </div>
-                  <span className="pill">{bookingStatusLabel(b.status)}</span>
+                  <div className="ri-actions">
+                    <span className="pill">{bookingStatusLabel(b.status)}</span>
+                    <Icon.chevronR className="ri-chevron" />
+                  </div>
                 </Link>
               );
             })
@@ -204,9 +219,12 @@ export default async function PortalPage() {
         <section className="surface">
           <div className="surface-head">
             <h2>
-              Recent clients
+              Clients
               <span className="count">{allClients.length} total</span>
             </h2>
+            <Link className="link-arrow" href="/portal/clients">
+              View all <Icon.arrowR />
+            </Link>
           </div>
           <div className="surface-body">
             {allClients.length === 0 ? (

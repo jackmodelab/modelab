@@ -1,4 +1,6 @@
 import { createBooking, updateBooking } from '@/lib/portal/actions';
+import { BookingEndPreview } from '@/components/booking-end-preview';
+import { BookingSubmit } from '@/components/booking-submit';
 
 type Option = { id: string; name: string };
 
@@ -22,28 +24,32 @@ const STATUS_OPTIONS = [
 /**
  * Server component — renders a plain progressive-enhancement form bound to a
  * server action. (Invoking server actions from a 'use client' component breaks
- * the Supabase auth-cookie round-trip, so this stays server-rendered.)
+ * the Supabase auth-cookie round-trip, so this stays server-rendered.) The two
+ * interactive bits — the computed end-time preview and the pending submit
+ * state — are isolated client islands that don't own the posting inputs.
  */
 export function BookingForm({
   mode,
   clients,
   services,
   locations,
+  serviceDurations,
   booking,
 }: {
   mode: 'create' | 'edit';
   clients: Option[];
   services: Option[];
   locations: Option[];
+  serviceDurations: Record<string, number>;
   booking?: ExistingBooking;
 }) {
   const action = mode === 'create' ? createBooking : updateBooking;
 
   return (
-    <form action={action} className="stack" style={{ maxWidth: '560px' }}>
+    <form action={action} className="p-form">
       {mode === 'edit' && booking && <input type="hidden" name="id" value={booking.id} />}
 
-      <div className="field">
+      <div className="p-field">
         <label htmlFor="client_id">Client</label>
         <select id="client_id" name="client_id" defaultValue={booking?.clientId ?? ''} required>
           <option value="" disabled>
@@ -57,8 +63,8 @@ export function BookingForm({
         </select>
       </div>
 
-      <div className="grid grid-2" style={{ gap: '1.2rem' }}>
-        <div className="field">
+      <div className="p-form-row-2">
+        <div className="p-field">
           <label htmlFor="service_id">Service</label>
           <select id="service_id" name="service_id" defaultValue={booking?.serviceId ?? ''} required>
             <option value="" disabled>
@@ -71,7 +77,7 @@ export function BookingForm({
             ))}
           </select>
         </div>
-        <div className="field">
+        <div className="p-field">
           <label htmlFor="location_id">Location</label>
           <select id="location_id" name="location_id" defaultValue={booking?.locationId ?? ''} required>
             <option value="" disabled>
@@ -86,30 +92,30 @@ export function BookingForm({
         </div>
       </div>
 
-      <div className="grid grid-2" style={{ gap: '1.2rem' }}>
-        <div className="field">
+      <div className="p-form-row-2">
+        <div className="p-field">
           <label htmlFor="starts_at">Starts</label>
           <input id="starts_at" name="starts_at" type="datetime-local" defaultValue={booking?.startsLocal ?? ''} required />
         </div>
-        {mode === 'edit' && (
-          <div className="field">
-            <label htmlFor="status">Status</label>
-            <select id="status" name="status" defaultValue={booking?.status ?? 'confirmed'}>
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+        <BookingEndPreview durations={serviceDurations} />
       </div>
 
-      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '0.5rem' }}>
-        <button className="btn" type="submit">
-          {mode === 'create' ? 'Create booking' : 'Save changes'} <span className="arrow">&rarr;</span>
-        </button>
-        <a className="text-link" href="/portal/schedule" style={{ display: 'inline-flex' }}>
+      {mode === 'edit' && (
+        <div className="p-field">
+          <label htmlFor="status">Status</label>
+          <select id="status" name="status" defaultValue={booking?.status ?? 'confirmed'}>
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <div className="p-form-actions">
+        <BookingSubmit mode={mode} />
+        <a className="link-arrow" href="/portal/schedule">
           Cancel
         </a>
       </div>

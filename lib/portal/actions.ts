@@ -75,7 +75,7 @@ export async function createBooking(formData: FormData) {
 
   revalidatePath('/portal/schedule');
   revalidatePath('/portal');
-  redirect('/portal/schedule');
+  redirect('/portal/schedule?created=1');
 }
 
 /** Edit an existing booking (reschedule, change service/location/status). */
@@ -83,7 +83,8 @@ export async function updateBooking(formData: FormData) {
   await requireStaff();
   const id = String(formData.get('id') ?? '');
   const row = await buildBookingRow(formData);
-  if (!id || !row) redirect('/portal/schedule');
+  if (!id) redirect('/portal/schedule');
+  if (!row) redirect(`/portal/bookings/${id}/edit?error=1`);
 
   const statusRaw = String(formData.get('status') ?? 'confirmed');
   const status = VALID_STATUS.has(statusRaw) ? statusRaw : 'confirmed';
@@ -104,7 +105,7 @@ export async function updateBooking(formData: FormData) {
 
   revalidatePath('/portal/schedule');
   revalidatePath('/portal');
-  redirect('/portal/schedule');
+  redirect('/portal/schedule?updated=1');
 }
 
 /** Add a weekly recurring availability block for the signed-in staff member. */
@@ -146,6 +147,29 @@ export async function toggleAvailability(formData: FormData) {
   if (!id) return;
   const supabase = createSupabaseServer();
   await supabase.from('staff_availability').update({ is_active: next } as never).eq('id', id);
+  revalidatePath('/portal/availability');
+}
+
+/** Edit the time window and/or location of an existing availability block. */
+export async function updateAvailability(formData: FormData) {
+  await requireStaff();
+  const id = String(formData.get('id') ?? '');
+  const start_time = String(formData.get('start_time') ?? '');
+  const end_time = String(formData.get('end_time') ?? '');
+  const locationRaw = String(formData.get('location_id') ?? '');
+
+  if (!id || !start_time || !end_time) return;
+  if (end_time <= start_time) return; // end must be after start
+
+  const supabase = createSupabaseServer();
+  await supabase
+    .from('staff_availability')
+    .update({
+      start_time,
+      end_time,
+      location_id: locationRaw && locationRaw !== 'any' ? locationRaw : null,
+    } as never)
+    .eq('id', id);
   revalidatePath('/portal/availability');
 }
 

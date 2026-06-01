@@ -479,6 +479,13 @@
 .app .ri-title { font-weight: 500; color: var(--engineered-black); }
 .app .ri-sub { font-family: var(--font-mono); font-size: 11px; color: var(--slate); margin-top: 3px; letter-spacing: 0.02em; }
 .app .ri-actions { display: flex; gap: 8px; align-items: center; }
+.app .ri-chevron {
+  width: 16px; height: 16px;
+  color: var(--slate-faint);
+  flex: none;
+  transition: transform .15s var(--p-ease), color .15s var(--p-ease);
+}
+.app .row-item.is-clickable:hover .ri-chevron { transform: translateX(3px); color: var(--engineered-black); }
 
 /* =========================================================================
    TIMELINE (today's bookings)
@@ -941,6 +948,173 @@
 .app .avail-add:hover { color: var(--engineered-black); border-color: var(--engineered-black); }
 .app .avail-add svg { width: 12px; height: 12px; }
 
+/* ── Add-form card (replaces old inline-style grid) ── */
+.app .avail-form-card {
+  background: var(--pure-white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
+  margin-bottom: 24px;
+}
+.app .avail-form-title {
+  font-family: var(--font-mono); font-size: 9.5px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--slate-soft); margin-bottom: 16px;
+}
+.app .avail-form-body {
+  display: flex; flex-direction: column; gap: 14px;
+}
+/* Reuse .p-form-row-2 and .p-field already defined above */
+
+/* ── Day group label + today badge ── */
+.app .avail-day-label {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--slate-soft);
+  padding: 14px 20px 4px;
+}
+.app .avail-day-today {
+  font-family: var(--font-mono); font-size: 9px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 2px 8px; border-radius: 10px;
+  background: var(--success-soft); color: var(--success);
+  font-weight: 600;
+}
+
+/* ── Inline edit row (replaces static row-item when editing) ── */
+.app .avail-edit-row {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 12px;
+  flex-wrap: wrap;
+  background: var(--surface-tint);
+}
+.app .avail-edit-row:last-child { border-bottom: none; }
+.app .avail-edit-fields {
+  display: flex; align-items: center; gap: 8px;
+  flex: 1; min-width: 0; flex-wrap: wrap;
+}
+.app .avail-edit-fields input[type="time"] {
+  background: var(--pure-white);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-family: var(--font-mono); font-size: 12.5px;
+  color: var(--engineered-black);
+  width: 112px;
+  transition: border-color .15s var(--p-ease), box-shadow .15s var(--p-ease);
+}
+.app .avail-edit-fields select {
+  background: var(--pure-white);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-family: var(--font-sans); font-size: 13px;
+  color: var(--engineered-black);
+  transition: border-color .15s var(--p-ease);
+}
+.app .avail-edit-fields input[type="time"]:focus,
+.app .avail-edit-fields select:focus {
+  border-color: var(--engineered-black); outline: none;
+  box-shadow: 0 0 0 3px rgba(14,15,17,0.06);
+}
+.app .avail-edit-sep {
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--slate-soft); flex-shrink: 0;
+}
+.app .avail-edit-actions { display: flex; align-items: center; gap: 8px; }
+@media (max-width: 680px) {
+  .app .avail-edit-fields { gap: 6px; }
+  .app .avail-edit-fields input[type="time"] { width: 96px; }
+  .app .avail-form-card { padding: 18px 16px; }
+}
+
+/* ── Live-editable availability row ───────────────────────────────────── */
+.app .avail-live-row {
+  display: grid; grid-template-columns: auto 1fr auto;
+  align-items: center; gap: 16px;
+  padding: 10px 20px; border-bottom: 1px solid var(--line);
+}
+.app .avail-live-row:last-child { border-bottom: none; }
+.app .avail-live-row.is-off { opacity: 0.5; }
+
+.app .avail-live-times {
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+.app .avail-live-dash {
+  font-family: var(--font-mono); font-size: 13px; color: var(--slate-faint);
+}
+.app .avail-live-loc {
+  background: transparent; border: 1px solid transparent;
+  border-radius: var(--radius); padding: 6px 8px;
+  font-family: var(--font-mono); font-size: 11px; color: var(--slate);
+  letter-spacing: 0.02em; cursor: pointer; width: 100%;
+  transition: border-color .15s var(--p-ease), background .15s var(--p-ease);
+}
+.app .avail-live-loc:hover,
+.app .avail-live-loc:focus { border-color: var(--line-strong); background: var(--pure-white); outline: none; }
+.app .avail-live-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+/* Save feedback dots */
+.app .avail-save-dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+}
+.app .avail-save-dot.saving {
+  background: var(--slate-faint);
+  animation: p-pulse 1s ease-in-out infinite;
+}
+.app .avail-save-dot.saved { background: var(--success); }
+.app .avail-save-err {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em;
+  color: var(--danger); white-space: nowrap;
+}
+
+/* ── Scroll drum (time picker) ────────────────────────────────────────── */
+.app .time-scroll-picker { display: flex; align-items: center; gap: 2px; }
+.app .time-scroll-sep {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+  color: var(--slate-soft); line-height: 1; margin: 0 1px; margin-top: 2px;
+}
+
+.app .time-drum {
+  display: flex; flex-direction: column; align-items: center;
+  cursor: ns-resize; user-select: none;
+  width: 26px; outline: none;
+}
+.app .time-drum:focus-visible .time-drum-val {
+  box-shadow: 0 0 0 2px rgba(14,15,17,0.18);
+}
+
+/* The selected value — sits between two hairlines */
+.app .time-drum-val {
+  font-family: var(--font-mono); font-size: 15px; font-weight: 600;
+  color: var(--engineered-black); line-height: 1;
+  padding: 4px 1px; width: 100%; text-align: center;
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
+  letter-spacing: 0.02em;
+  transition: border-color .15s var(--p-ease);
+}
+.app .time-drum:hover .time-drum-val { border-color: var(--engineered-black); }
+
+/* Ghost values above and below — clickable to step */
+.app .time-drum-ghost {
+  font-family: var(--font-mono); font-size: 10.5px;
+  color: var(--slate-faint); line-height: 1;
+  padding: 3px 1px; width: 100%; text-align: center;
+  background: none; border: none; cursor: pointer;
+  letter-spacing: 0.02em; min-height: 18px;
+  transition: color .1s var(--p-ease);
+}
+.app .time-drum-ghost:hover { color: var(--slate); }
+
+@media (max-width: 680px) {
+  .app .avail-live-row { grid-template-columns: auto 1fr; gap: 10px; padding: 10px 16px; }
+  .app .avail-live-actions { grid-column: 1 / -1; padding-top: 6px; border-top: 1px solid var(--line); }
+  .app .avail-form-card { padding: 18px 16px; }
+}
+
 /* =========================================================================
    FORMS
    ========================================================================= */
@@ -986,6 +1160,7 @@
   font-family: var(--font-mono); font-size: 11px;
   color: var(--danger);
   border-radius: 3px;
+  margin-bottom: 18px;
 }
 
 .app .kv-row {

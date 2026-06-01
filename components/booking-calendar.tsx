@@ -194,7 +194,18 @@ export function BookingCalendar({
                 <div
                   key={keyOf(d)}
                   className={`day-col ${isSameDay(d, now) ? 'is-today' : ''}`}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Focus ${format(d, 'EEEE d MMMM')}`}
                   onClick={() => setAnchor(d)}
+                  onKeyDown={(e) => {
+                    // Only act on the column itself — let event links handle their own keys.
+                    if (e.target !== e.currentTarget) return;
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setAnchor(d);
+                    }
+                  }}
                 >
                   {HOURS.map((h) => (
                     <div key={h} className="hour-cell" />
