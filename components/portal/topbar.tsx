@@ -1,6 +1,18 @@
 import Link from 'next/link';
 import { Icon } from './icons';
 import { CommandPalette, type PaletteClient } from './command-palette';
+import { signOut } from '@/lib/auth/actions';
+
+/** Mobile-only sign-out button shown in the topbar when the rail is hidden (<880px). */
+function MobileSignOut() {
+  return (
+    <form action={signOut} className="topbar-signout">
+      <button className="icon-btn" type="submit" title="Sign out" aria-label="Sign out">
+        <Icon.logout />
+      </button>
+    </form>
+  );
+}
 
 /**
  * Staff topbar — ⌘K command palette + bell + new-booking quick action.
@@ -23,6 +35,7 @@ export function StaffTopbar({
           <Icon.plus />
           <span>New booking</span>
         </Link>
+        <MobileSignOut />
       </div>
     </div>
   );
@@ -50,6 +63,7 @@ export function MemberTopbar({
           <Icon.bell />
           {hasNotification && <span className="dot" />}
         </button>
+        <MobileSignOut />
       </div>
     </div>
   );

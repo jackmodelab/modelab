@@ -16,10 +16,12 @@ export type MobileTab = {
  */
 export function MobileTabs({ tabs }: { tabs: MobileTab[] }) {
   const pathname = usePathname();
+  // Portal overview roots shouldn't swallow every sub-route, so they only match exactly.
+  const exactRoots = ['/account', '/portal'];
   const isActive = (href: string) => {
     if (!pathname) return false;
     if (pathname === href) return true;
-    if (href === '/account') return pathname === '/account';
+    if (exactRoots.includes(href)) return pathname === href;
     return pathname.startsWith(href + '/');
   };
   return (

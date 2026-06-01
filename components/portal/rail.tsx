@@ -85,12 +85,14 @@ export function Rail({
           <div className="n">{user.fullName}</div>
           <div className="e">{user.email}</div>
         </div>
-        <form action={signOut}>
-          <button className="rail-signout" type="submit" title="Sign out" aria-label="Sign out">
-            <Icon.logout />
-          </button>
-        </form>
       </div>
+
+      <form action={signOut}>
+        <button className="rail-signout" type="submit">
+          <Icon.logout />
+          <span>Sign out</span>
+        </button>
+      </form>
     </aside>
   );
 }

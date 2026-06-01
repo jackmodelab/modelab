@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { AppFrame } from '@/components/portal/app-frame';
 import { Rail, type RailSection } from '@/components/portal/rail';
 import { StaffTopbar } from '@/components/portal/topbar';
+import { MobileTabs, type MobileTab } from '@/components/portal/mobile-tabs';
 import { RouteToast } from '@/components/portal/route-toast';
 import { requireStaff } from '@/lib/auth/guards';
 import { createSupabaseServer } from '@/lib/supabase/server';
@@ -29,6 +30,14 @@ const SECTIONS: RailSection[] = [
       { href: '/portal/profile',      label: 'Profile',      icon: 'user' },
     ],
   },
+];
+
+const MOBILE_TABS: MobileTab[] = [
+  { href: '/portal',          label: 'Today',    icon: 'dashboard' },
+  { href: '/portal/schedule', label: 'Calendar', icon: 'calendar' },
+  { href: '/portal/clients',  label: 'Clients',  icon: 'users' },
+  { href: '/portal/files',    label: 'Files',    icon: 'file' },
+  { href: '/portal/profile',  label: 'Profile',  icon: 'user' },
 ];
 
 function initialsFor(input: string | null | undefined, email: string) {
@@ -59,6 +68,7 @@ export default async function PortalLayout({ children }: { children: React.React
       portal="staff"
       rail={<Rail portal="staff" sections={SECTIONS} user={{ initials: initialsFor(staff.display_name, email), fullName, email }} />}
       topbar={<StaffTopbar clients={paletteClients} />}
+      mobileTabs={<MobileTabs tabs={MOBILE_TABS} />}
     >
       {children}
       <Suspense fallback={null}>

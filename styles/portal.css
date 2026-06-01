@@ -89,6 +89,8 @@
   .app { grid-template-columns: 1fr; }
   .app .rail { display: none; }
   .app .mobile-tabs { display: flex !important; }
+  /* Keep content clear of the fixed bottom nav bar (member already pads on desktop). */
+  .app[data-portal="staff"] .main { padding-bottom: 90px; }
 }
 
 /* =========================================================================
@@ -152,7 +154,7 @@
 .rail-spacer { flex: 1; }
 .rail-user {
   display: flex; align-items: center; gap: 10px;
-  padding: 12px 10px;
+  padding: 12px 10px 10px;
   border-top: 1px solid var(--line);
   margin-top: 12px;
 }
@@ -167,13 +169,17 @@
 .rail-user-text .n { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rail-user-text .e { font-family: var(--font-mono); font-size: 10px; color: var(--slate-soft); letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rail-signout {
-  border: none; background: transparent; color: var(--slate-soft);
-  padding: 5px; border-radius: var(--radius);
-  transition: color .2s var(--p-ease), background .2s var(--p-ease);
-  display: grid; place-items: center;
+  width: 100%;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  border: 1px solid var(--line-strong); background: var(--pure-white); color: var(--engineered-black);
+  padding: 9px 12px; border-radius: var(--radius);
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  cursor: pointer;
+  transition: color .2s var(--p-ease), background .2s var(--p-ease), border-color .2s var(--p-ease);
 }
-.rail-signout:hover { color: var(--engineered-black); background: var(--rail-hover); }
-.rail-signout svg { width: 14px; height: 14px; }
+.rail-signout:hover { color: var(--lab-white); background: var(--engineered-black); border-color: var(--engineered-black); }
+.rail-signout svg { width: 15px; height: 15px; }
 
 /* ---------- Mobile tab bar ---------- */
 .mobile-tabs {
@@ -228,6 +234,8 @@
   transition: border-color .2s var(--p-ease);
 }
 .search-pill:hover { border-color: var(--engineered-black); }
+/* Mobile uses the bottom nav bar for navigation; the ⌘K search trigger hides. */
+@media (max-width: 880px) { .search-pill { display: none; } }
 .search-pill svg { width: 14px; height: 14px; }
 .search-pill .kbd {
   margin-left: auto;
@@ -237,6 +245,9 @@
   letter-spacing: 0.04em;
 }
 .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+/* Sign-out lives in the rail on desktop; surface it in the topbar once the rail hides. */
+.topbar-signout { display: none; }
+@media (max-width: 880px) { .topbar-signout { display: block; } }
 .icon-btn {
   width: 36px; height: 36px;
   border: 1px solid var(--line); border-radius: var(--radius);
