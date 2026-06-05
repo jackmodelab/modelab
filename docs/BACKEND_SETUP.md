@@ -11,13 +11,14 @@ is already coded — you just need a Supabase project and ~10 minutes.
   bookings, client_packages, assessments, documents, articles, availability,
   assignments, leads.
 - **Members area** (`/account`) — bookings (upcoming/history), packages & sessions
-  remaining, shared files, research articles. Reads real data; RLS-scoped to the user.
-- **Employee portal** (`/portal`) — clients list, upcoming schedule, availability,
-  recently shared files. Staff-only.
+  remaining, research articles. Reads real data; RLS-scoped to the user.
+- **Employee portal** (`/portal`) — clients list, upcoming schedule, availability.
+  Staff-only.
 - **Seed script** that creates a test member + test staff with sample data.
 
-> Coming next: Stripe checkout, the booking flow, Google Calendar sync, and the
-> file-upload / report-builder actions in the portal.
+> Launch posture: payment is **in-studio** (no online checkout). Client file
+> sharing is **hidden** until the private Storage bucket + policies are built.
+> Coming next: Stripe checkout and the file-upload / report-builder actions.
 
 ---
 
@@ -48,17 +49,27 @@ TEST_STAFF_EMAIL=jack@modelab.test      TEST_STAFF_PASSWORD=ModeLab!2026
 
 ## Step 3 — Apply the schema
 
-**Easiest:** open the Supabase **SQL Editor** and run, in order:
-
-1. Paste the contents of `supabase/migrations/0001_initial_schema.sql` → **Run**.
-2. Paste the contents of `supabase/migrations/0002_seed_catalog.sql` → **Run**.
-
-**Or via the CLI** (already installed):
+**Use the CLI — it applies _every_ migration in `supabase/migrations/` in order.**
+This matters: beyond the initial schema and seed catalog there are later
+migrations for pre-screening, Google Calendar, the **secure-tokens fix** (moves
+the Google refresh token off the public-readable `staff` table) and the
+**clients RLS hardening**. Applying only `0001`/`0002` by hand silently skips all
+of those.
 
 ```bash
 supabase link --project-ref <your-ref>
 supabase db push
 ```
+
+After it runs, sanity-check that the security migrations landed:
+
+- `staff_google_credentials` and `client_screenings` tables exist.
+- `staff.google_refresh_token` **no longer exists** (it moved to
+  `staff_google_credentials`).
+
+> If you must use the Supabase **SQL Editor** instead of the CLI, paste **every**
+> file in `supabase/migrations/` in filename order (not just the first two) —
+> otherwise you ship without the token-security and RLS fixes.
 
 ## Step 4 — Seed the test accounts
 
@@ -84,7 +95,7 @@ npm run dev
 
 - <http://localhost:3000/login>
 - Sign in as **client@modelab.test** → lands on `/account` (member dashboard with
-  sample bookings, a 45-min package, shared files, research articles).
+  sample bookings, a 45-min package, research articles).
 - Sign in as **jack@modelab.test** → lands on `/portal` (staff portal: clients,
   schedule, availability).
 
@@ -106,9 +117,10 @@ npm run dev
 - **Email confirmation:** the seed sets `email_confirm: true`, so test accounts work
   immediately. For real public sign-ups, Supabase sends a confirmation email; the
   `/auth/callback` route handles the redirect back.
-- **Shared files** are seeded as metadata rows with placeholder `storage_path`s.
-  Actual upload/download wiring (a Supabase Storage bucket called `client-files`)
-  comes with the portal file-management slice.
+- **Shared files** are seeded as metadata rows with placeholder `storage_path`s,
+  but the feature is **hidden in the UI** for launch — the private `client-files`
+  Storage bucket and its access policies don't exist yet. Don't surface the files
+  UI until that bucket + Storage RLS + a client-scoped download path are built.
 - **Regenerate DB types** anytime the schema changes: `npm run db:types`
   (overwrites `types/database.ts` with exact generated types).
 - **Never commit `.env.local`** — it's gitignored. The `service_role` key bypasses

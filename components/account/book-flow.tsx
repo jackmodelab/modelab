@@ -288,8 +288,8 @@ export function BookFlow({
                 <span className="pill">Request</span>
               </div>
               <p style={{ color: 'var(--slate)', fontSize: 12.5, lineHeight: 1.55 }}>
-                The studio will confirm your request and email you the calendar invite. (Self-serve checkout lands
-                once Stripe is wired up.)
+                The studio will confirm your request and email you the calendar invite. Payment is settled in
+                studio at your session — card, cash or transfer.
               </p>
             </div>
 

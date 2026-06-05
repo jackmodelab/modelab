@@ -78,6 +78,16 @@ export async function createBooking(formData: FormData) {
   redirect('/portal/schedule?created=1');
 }
 
+// AUTHORIZATION MODEL (multi-coach) — DECISION, 2026-06.
+// `updateBooking` / `cancelBooking` let ANY active staff member edit or cancel
+// ANY coach's booking, and the clients list is shared. The studio is a single
+// operator (Jack) at launch, so this is the handoff's "fine for a single trusted
+// operator" case — no scoping needed.
+// When a second coach is added and they should be siloed, scope writes to the
+// owning coach: load the booking's `staff_id`, compare to the signed-in
+// `staff.id`, and reject the mismatch (or allow only via a `client_assignments`
+// link). Calendar sync already targets the booking's own coach, so scoping is a
+// guard, not a rewrite.
 /** Edit an existing booking (reschedule, change service/location/status). */
 export async function updateBooking(formData: FormData) {
   await requireStaff();

@@ -66,6 +66,11 @@
                 <label for="message">What are you working towards?</label>
                 <textarea id="message" name="message" placeholder="Goals, injuries, history, schedule — whatever helps us point you the right way."></textarea>
               </div>
+              <!-- Honeypot: hidden from real users; bots that fill it are dropped. -->
+              <div aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">
+                <label for="company">Company</label>
+                <input id="company" name="company" type="text" tabindex="-1" autocomplete="off" />
+              </div>
               <div>
                 <button class="btn" type="submit">Send enquiry <span class="arrow">&rarr;</span></button>
                 <p class="form-note" id="formStatus" role="status" hidden></p>

@@ -117,21 +117,18 @@ export default async function ProfilePage() {
 
           <section className="surface">
             <div className="surface-head">
-              <h2>Payment method</h2>
+              <h2>Payments</h2>
             </div>
             <div className="surface-body--pad">
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <Icon.card />
                 <div>
-                  <div style={{ fontWeight: 500, fontSize: 13.5 }}>Not connected yet</div>
+                  <div style={{ fontWeight: 500, fontSize: 13.5 }}>Paid in studio</div>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--slate)', marginTop: 3, letterSpacing: '0.02em' }}>
-                    Card &amp; bank details are stored by Stripe — MODE Lab never sees them.
+                    Settle sessions and packages with us in person — card, cash or transfer.
                   </div>
                 </div>
               </div>
-              <button className="btn btn--ghost btn--mini" style={{ marginTop: 14 }} type="button" disabled>
-                Add method
-              </button>
             </div>
           </section>
 

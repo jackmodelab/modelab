@@ -20,7 +20,7 @@ const SECTIONS: RailSection[] = [
   {
     label: 'Account',
     items: [
-      { href: '/account/billing',  label: 'Billing',        icon: 'card' },
+      { href: '/account/billing',  label: 'Payments',       icon: 'card' },
       { href: '/account/profile',  label: 'Profile',        icon: 'user' },
       { href: '/account/research', label: 'Research',       icon: 'file' },
     ],

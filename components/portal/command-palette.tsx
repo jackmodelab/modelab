@@ -13,7 +13,6 @@ const ACTIONS: Action[] = [
   { id: 'go-schedule', title: 'Go to Calendar', sub: 'Week view', icon: 'calendar', href: '/portal/schedule' },
   { id: 'go-availability', title: 'Edit availability', sub: 'Weekly blocks', icon: 'clock', href: '/portal/availability' },
   { id: 'go-clients', title: 'Browse clients', sub: 'Library', icon: 'users', href: '/portal/clients' },
-  { id: 'go-files', title: 'Browse files', sub: 'Library', icon: 'file', href: '/portal/files' },
   { id: 'new-booking', title: 'Create new booking', sub: 'Form', icon: 'plus', href: '/portal/bookings/new' },
 ];
 
@@ -96,7 +95,7 @@ export function CommandPalette({ clients }: { clients: PaletteClient[] }) {
     <>
       <button className="search-pill" type="button" onClick={() => setOpen(true)} aria-label="Search">
         <Icon.search />
-        <span>Search clients, bookings, files…</span>
+        <span>Search clients, bookings…</span>
         <span className="kbd">⌘ K</span>
       </button>
 

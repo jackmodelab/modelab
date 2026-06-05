@@ -74,3 +74,13 @@ pnpm-debug.log*
 .claude/settings.local.json
 
 .vercel
+
+# ---------------------------------------------------------------------------
+# LOCAL DEV / TEST DATA — not part of the production build, never deploy
+# ---------------------------------------------------------------------------
+# Test-account / sample-data seeders (create accounts that must not exist in
+# the live database). Run locally only.
+/scripts/seed-*.mjs
+
+# Claude / internal handoff notes — planning docs, not for the public repo
+*_HANDOFF.md

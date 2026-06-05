@@ -21,7 +21,6 @@ const SECTIONS: RailSection[] = [
     label: 'Library',
     items: [
       { href: '/portal/clients',      label: 'Clients',      icon: 'users' },
-      { href: '/portal/files',        label: 'Files',        icon: 'file' },
     ],
   },
   {
@@ -36,7 +35,6 @@ const MOBILE_TABS: MobileTab[] = [
   { href: '/portal',          label: 'Today',    icon: 'dashboard' },
   { href: '/portal/schedule', label: 'Calendar', icon: 'calendar' },
   { href: '/portal/clients',  label: 'Clients',  icon: 'users' },
-  { href: '/portal/files',    label: 'Files',    icon: 'file' },
   { href: '/portal/profile',  label: 'Profile',  icon: 'user' },
 ];
 

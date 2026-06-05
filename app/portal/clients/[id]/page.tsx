@@ -4,8 +4,7 @@ import { format, parseISO } from 'date-fns';
 import { requireStaff } from '@/lib/auth/guards';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { formatTime, bookingStatusLabel } from '@/lib/format';
-import { Icon } from '@/components/portal/icons';
-import type { ClientRow, BookingRow, DocumentRow, ClientPackageRow } from '@/types/database';
+import type { ClientRow, BookingRow, ClientPackageRow } from '@/types/database';
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
   return { title: `Client — MODE Lab`, description: params.id };
@@ -21,10 +20,9 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
   await requireStaff();
   const supabase = createSupabaseServer();
 
-  const [{ data: clientData }, { data: bookings }, { data: docs }, { data: pkgs }, { data: services }, { data: locations }] = await Promise.all([
+  const [{ data: clientData }, { data: bookings }, { data: pkgs }, { data: services }, { data: locations }] = await Promise.all([
     supabase.from('clients').select('*').eq('id', params.id).maybeSingle(),
     supabase.from('bookings').select('*').eq('client_id', params.id).order('starts_at', { ascending: true }),
-    supabase.from('documents').select('*').eq('client_id', params.id).order('created_at', { ascending: false }),
     supabase.from('client_packages').select('*').eq('client_id', params.id).eq('status', 'active'),
     supabase.from('services').select('id,name'),
     supabase.from('locations').select('id,name,suburb'),
@@ -34,7 +32,6 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
   if (!client) notFound();
 
   const bks = (bookings ?? []) as BookingRow[];
-  const files = (docs ?? []) as DocumentRow[];
   const activePkgs = (pkgs ?? []) as ClientPackageRow[];
   const serviceName = new Map(((services ?? []) as { id: string; name: string }[]).map((s) => [s.id, s.name]));
   const locationName = new Map(((locations ?? []) as { id: string; name: string; suburb: string | null }[]).map((l) => [l.id, l.suburb || l.name]));
@@ -146,35 +143,6 @@ export default async function ClientDetailPage({ params }: { params: { id: strin
       </div>
 
       <div className="detail-grid" style={{ marginTop: 20 }}>
-        <section className="surface">
-          <div className="surface-head">
-            <h2>
-              Files
-              <span className="count">{files.length}</span>
-            </h2>
-            <Link className="link-arrow" href={`/portal/files?client=${client.id}`}>
-              Manage <Icon.arrowR />
-            </Link>
-          </div>
-          <div className="surface-body">
-            {files.length === 0 ? (
-              <p className="empty">No files shared.</p>
-            ) : (
-              files.slice(0, 6).map((f) => (
-                <div className="row-item" key={f.id}>
-                  <div className="ri-main">
-                    <div className="ri-title">{f.title}</div>
-                    <div className="ri-sub">
-                      {f.file_type ?? 'FILE'} · {format(parseISO(f.created_at), 'dd MMM yyyy')}
-                    </div>
-                  </div>
-                  <span className="pill">{f.file_type ?? 'FILE'}</span>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
-
         <section className="surface">
           <div className="surface-head">
             <h2>

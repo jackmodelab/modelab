@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { AuthForm } from '@/components/auth-form';
+import { RequestResetForm } from '@/components/auth-reset-forms';
 import { FlaskMark } from '@/components/flask-mark';
 import { getUser, isStaffUser } from '@/lib/auth/guards';
 
-export const metadata = { title: 'Create account — MODE Lab' };
+export const metadata = { title: 'Reset password — MODE Lab' };
 
-export default async function SignupPage() {
+export default async function ForgotPasswordPage() {
+  // Already signed in? No need to recover.
   if (await getUser()) {
     redirect((await isStaffUser()) ? '/portal' : '/account');
   }
@@ -19,15 +20,15 @@ export default async function SignupPage() {
           MODE&nbsp;LAB
         </span>
       </a>
-      <h1>Create your account.</h1>
-      <p className="lede">Track your bookings, packages and scans in one place.</p>
+      <h1>Reset your password.</h1>
+      <p className="lede">Enter your email and we’ll send you a link to set a new password.</p>
 
-      <AuthForm mode="signup" />
+      <RequestResetForm />
 
       <p className="auth-alt">
-        Already a member?{' '}
+        Remembered it?{' '}
         <Link className="text-link" href="/login" style={{ display: 'inline-flex' }}>
-          Sign in &rarr;
+          Back to sign in &rarr;
         </Link>
       </p>
     </div>

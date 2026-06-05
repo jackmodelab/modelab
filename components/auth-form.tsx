@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useFormState, useFormStatus } from 'react-dom';
 import { signIn, signUp, type AuthState } from '@/lib/auth/actions';
 
@@ -21,6 +22,11 @@ export function AuthForm({ mode, next }: { mode: 'login' | 'signup'; next?: stri
       {state?.error && (
         <p className="auth-error" role="alert">
           {state.error}
+        </p>
+      )}
+      {state?.success && (
+        <p className="auth-success" role="status">
+          {state.success}
         </p>
       )}
 
@@ -46,6 +52,13 @@ export function AuthForm({ mode, next }: { mode: 'login' | 'signup'; next?: stri
           required
           placeholder={mode === 'signup' ? 'At least 8 characters' : 'Your password'}
         />
+        {mode === 'login' && (
+          <p style={{ marginTop: '0.5rem', textAlign: 'right' }}>
+            <Link className="text-link" href="/forgot-password" style={{ fontSize: '0.82rem' }}>
+              Forgot password?
+            </Link>
+          </p>
+        )}
       </div>
 
       {next && <input type="hidden" name="next" value={next} />}

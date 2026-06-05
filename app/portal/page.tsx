@@ -3,7 +3,7 @@ import { format, parseISO, startOfDay, endOfDay, addDays, isSameDay } from 'date
 import { requireStaff } from '@/lib/auth/guards';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { formatTime, bookingStatusLabel } from '@/lib/format';
-import type { BookingRow, ClientRow, DocumentRow, StaffAvailabilityRow } from '@/types/database';
+import type { BookingRow, ClientRow, StaffAvailabilityRow } from '@/types/database';
 import { Icon } from '@/components/portal/icons';
 
 export const metadata = { title: 'Staff portal — MODE Lab' };
@@ -20,7 +20,7 @@ export default async function PortalPage() {
   const weekAhead = addDays(now, 7).toISOString();
   const sevenDaysBack = addDays(now, -7).toISOString();
 
-  const [{ data: clients }, { data: weekBookings }, { data: avail }, { data: docs }, { data: services }, { data: locations }] =
+  const [{ data: clients }, { data: weekBookings }, { data: avail }, { data: services }, { data: locations }] =
     await Promise.all([
       supabase.from('clients').select('*').order('full_name', { ascending: true }),
       supabase
@@ -30,7 +30,6 @@ export default async function PortalPage() {
         .lte('starts_at', weekAhead)
         .order('starts_at', { ascending: true }),
       supabase.from('staff_availability').select('*').eq('staff_id', staff.id).order('weekday', { ascending: true }),
-      supabase.from('documents').select('*').order('created_at', { ascending: false }).limit(6),
       supabase.from('services').select('id,name'),
       supabase.from('locations').select('id,name,suburb'),
     ]);
@@ -40,7 +39,6 @@ export default async function PortalPage() {
   const today = week.filter((b) => isSameDay(parseISO(b.starts_at), now));
   const upcomingWeek = week.filter((b) => parseISO(b.starts_at) > todayEnd);
   const availability = (avail ?? []) as StaffAvailabilityRow[];
-  const files = (docs ?? []) as DocumentRow[];
   const newClients7d = allClients.filter((c) => c.created_at >= sevenDaysBack).length;
 
   const clientName = new Map(allClients.map((c) => [c.id, c.full_name || c.email]));
@@ -83,11 +81,6 @@ export default async function PortalPage() {
           <div className="k">New clients · 7d</div>
           <div className="v">{newClients7d}</div>
           <div className="sub">{allClients.length} total</div>
-        </div>
-        <div className="stat-card">
-          <div className="k">Recent files</div>
-          <div className="v">{files.length}</div>
-          <div className="sub">Last 6 shared</div>
         </div>
       </div>
 
@@ -248,32 +241,6 @@ export default async function PortalPage() {
           </div>
         </section>
 
-        {/* Recent files */}
-        <section className="surface">
-          <div className="surface-head">
-            <h2>
-              Recent files
-              <span className="count">{files.length}</span>
-            </h2>
-          </div>
-          <div className="surface-body">
-            {files.length === 0 ? (
-              <p className="empty">No files shared yet.</p>
-            ) : (
-              files.map((f) => (
-                <div className="row-item" key={f.id}>
-                  <div className="ri-main">
-                    <div className="ri-title">{f.title}</div>
-                    <div className="ri-sub">
-                      {clientName.get(f.client_id) ?? '—'} · {format(parseISO(f.created_at), 'dd MMM yyyy')}
-                    </div>
-                  </div>
-                  <span className="pill">{f.file_type ?? 'FILE'}</span>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
       </div>
     </>
   );

@@ -190,20 +190,62 @@
     Array.prototype.forEach.call(counters, function (el) { cio.observe(el); });
   }
 
-  /* ---- Contact form (front-end only for now) ---------------------------- */
+  /* ---- Contact form → /api/leads ---------------------------------------- */
   var form = document.getElementById("enquiryForm");
   if (form) {
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       var btn = form.querySelector("button[type=submit]");
       var status = document.getElementById("formStatus");
-      if (btn) { btn.disabled = true; btn.style.opacity = "0.6"; }
-      if (status) {
+
+      function show(msg, ok) {
+        if (!status) return;
         status.hidden = false;
-        status.textContent = "Logged locally. Wiring this to Supabase + email is the next build step.";
+        status.textContent = msg;
+        status.style.color = ok ? "var(--lab-green, #1f5a33)" : "#8a1f1f";
       }
-      form.reset();
-      setTimeout(function () { if (btn) { btn.disabled = false; btn.style.opacity = "1"; } }, 600);
+
+      if (btn) { btn.disabled = true; btn.style.opacity = "0.6"; }
+
+      // Read by name attribute — note form.name would shadow the "name" input
+      // with the form element's own .name property.
+      function val(n) {
+        var el = form.querySelector('[name="' + n + '"]');
+        return el ? el.value : "";
+      }
+      var payload = {
+        name: val("name"),
+        email: val("email"),
+        phone: val("phone"),
+        interest: val("interest"),
+        message: val("message"),
+        company: val("company") // honeypot
+      };
+
+      fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      })
+        .then(function (res) {
+          return res.json().catch(function () { return {}; }).then(function (data) {
+            return { ok: res.ok, data: data };
+          });
+        })
+        .then(function (r) {
+          if (r.ok) {
+            show("Thanks — we’ve got your enquiry and will be in touch soon.", true);
+            form.reset();
+          } else {
+            show((r.data && r.data.error) || "Something went wrong. Please try again.", false);
+          }
+        })
+        .catch(function () {
+          show("Couldn’t send right now. Please email jack@modelab.com.au.", false);
+        })
+        .then(function () {
+          if (btn) { btn.disabled = false; btn.style.opacity = "1"; }
+        });
     });
   }
 })();

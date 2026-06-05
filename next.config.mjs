@@ -1,24 +1,37 @@
+// Next.js dev mode (HMR / React Refresh) relies on eval; production builds don't.
+// Allow 'unsafe-eval' only in development so the enforced CSP doesn't break the
+// dev server while staying strict in production.
+const isDev = process.env.NODE_ENV !== 'production';
+
+const csp = [
+  "default-src 'self'",
+  // 'unsafe-inline' is still required: Next injects inline hydration scripts and
+  // there is no per-request nonce path for the static /public/*.html pages, which
+  // share this header. The static pages themselves carry no inline scripts.
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  "img-src 'self' data: blob:",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://oauth2.googleapis.com https://www.googleapis.com",
+  // Google Maps embed iframe on /locations.html.
+  "frame-src https://maps.google.com https://www.google.com",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "object-src 'none'",
+].join('; ');
+
 const securityHeaders = [
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-  // Report-only first so it can't break the static /public/*.html pages, Google
-  // Fonts, Supabase, or Google OAuth. Watch the browser console for violations,
-  // tighten, then rename the key to 'Content-Security-Policy' to enforce.
-  {
-    key: 'Content-Security-Policy-Report-Only',
-    value: [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'", // tighten with a nonce later
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "font-src 'self' https://fonts.gstatic.com",
-      "img-src 'self' data: blob:",
-      "connect-src 'self' https://*.supabase.co https://oauth2.googleapis.com https://www.googleapis.com",
-      "frame-ancestors 'none'",
-      "base-uri 'self'",
-    ].join('; '),
-  },
+  // Belt-and-braces with Vercel's edge HSTS. Only honoured over HTTPS, so it's a
+  // no-op on localhost.
+  { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
+  // Enforced (was Report-Only). Sources audited against the app + static pages:
+  // Google Fonts, Supabase, Google OAuth APIs, and the Maps embed.
+  { key: 'Content-Security-Policy', value: csp },
 ];
 
 /** @type {import('next').NextConfig} */

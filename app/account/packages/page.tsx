@@ -125,7 +125,7 @@ export default async function PackagesPage() {
         </div>
       )}
 
-      {/* Catalog — view-only purchase placeholder (Stripe deferred). */}
+      {/* Catalog — view-only. Packages are purchased in studio (no online checkout). */}
       <section className="surface" style={{ marginTop: 28 }}>
         <div className="surface-head">
           <h2>
@@ -151,9 +151,6 @@ export default async function PackagesPage() {
                   <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: 13 }}>
                     ${(p.price_cents / 100).toLocaleString('en-AU', { maximumFractionDigits: 0 })}
                   </span>
-                  <button className="btn btn--mini btn--ghost" type="button" disabled title="Stripe checkout — coming soon">
-                    Purchase
-                  </button>
                 </div>
               </div>
             ))
@@ -162,7 +159,7 @@ export default async function PackagesPage() {
       </section>
 
       <p style={{ marginTop: 14, color: 'var(--slate-soft)', fontSize: 11, letterSpacing: '0.04em', fontFamily: 'var(--font-mono)' }}>
-        Card and bank details are stored by Stripe — MODE Lab never sees them. Checkout lands in a follow-up release.
+        Packages are purchased in studio — just let your coach know and we&rsquo;ll set you up.
       </p>
     </>
   );
