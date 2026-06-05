@@ -52,7 +52,15 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
   }
 
   revalidatePath('/', 'layout');
-  redirect(destination);
+  // Signal the splash screen to play once on the destination page (it only
+  // shows after a successful sign-in, not when navigating to the login page).
+  redirect(withWelcome(destination));
+}
+
+/** Append the splash-screen `welcome` flag, preserving any existing query string. */
+function withWelcome(path: string): string {
+  const sep = path.includes('?') ? '&' : '?';
+  return `${path}${sep}welcome=1`;
 }
 
 /** Email + password sign-up. A `clients` row is created by the handle_new_user trigger. */
@@ -87,7 +95,7 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
   }
 
   revalidatePath('/', 'layout');
-  redirect('/account');
+  redirect(withWelcome('/account'));
 }
 
 export async function signOut() {

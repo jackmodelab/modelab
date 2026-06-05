@@ -83,7 +83,7 @@ const FLASK_OUTLINE_PATH =
   '15.01888,-0.01237 30.03776,-0.02474 45.05664,-0.03711 l 0.0055,0.09985 z';
 
 /* ─── Tunable constants ──────────────────────────────────────────────────── */
-const LIQUID_COLOR = '#B07A3F'; // brand accent (was #F4F5F5)
+const LIQUID_COLOR = '#FFFFFF'; // white fluid (matches the flask outline)
 const FADE_MS = 850; // must match the container's opacity transition
 
 /* ─── Easing ─────────────────────────────────────────────────────────────── */
@@ -122,19 +122,13 @@ export function SplashScreen() {
   const [showText, setShowText] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  // Fade the overlay out and unmount. Shared by the timed end-of-hold and the
-  // skip button; guarded so it can only run once.
+  // Fade the overlay out and unmount. Runs once at the end of the hold phase.
   const finish = useCallback(() => {
     if (finishingRef.current) return;
     finishingRef.current = true;
     cancelAnimationFrame(animRef.current);
     if (splashRef.current) splashRef.current.style.opacity = '0';
-    setTimeout(() => {
-      try {
-        sessionStorage.setItem('modeSplashDone', '1');
-      } catch {}
-      setMounted(false);
-    }, FADE_MS);
+    setTimeout(() => setMounted(false), FADE_MS);
   }, []);
 
   const startAnimation = useCallback(() => {
@@ -192,20 +186,26 @@ export function SplashScreen() {
   }, [finish]);
 
   useEffect(() => {
-    // Only show once per browser session
-    try {
-      if (sessionStorage.getItem('modeSplashDone')) return;
-    } catch {}
+    if (typeof window === 'undefined') return;
 
-    // Respect reduced-motion: skip the full-screen animation entirely and mark
-    // it done so motion-sensitive users land straight on the page.
-    if (
-      typeof window !== 'undefined' &&
-      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    ) {
-      try { sessionStorage.setItem('modeSplashDone', '1'); } catch {}
-      return;
-    }
+    // Only play right after a successful sign-in. The auth action redirects to
+    // the destination with `?welcome=1`; if that flag isn't present, don't show
+    // the splash (e.g. when simply navigating to the login page).
+    const params = new URLSearchParams(window.location.search);
+    if (!params.get('welcome')) return;
+
+    // Strip the flag so a refresh or back-navigation doesn't replay the splash.
+    params.delete('welcome');
+    const qs = params.toString();
+    window.history.replaceState(
+      null,
+      '',
+      window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash
+    );
+
+    // Respect reduced-motion: skip the full-screen animation entirely so
+    // motion-sensitive users land straight on the page.
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
 
     setMounted(true);
     // Small delay so the element is painted before animation starts
@@ -308,31 +308,6 @@ export function SplashScreen() {
       >
         Medical Grade Fitness
       </div>
-
-      {/* Skip — jumps straight to the fade-out */}
-      <button
-        type="button"
-        onClick={finish}
-        aria-label="Skip intro"
-        style={{
-          position: 'absolute',
-          bottom: 28,
-          right: 28,
-          padding: '7px 14px',
-          background: 'transparent',
-          border: '1px solid rgba(244, 245, 245, 0.22)',
-          borderRadius: 999,
-          color: '#8B9099',
-          fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
-          fontWeight: 600,
-          fontSize: '0.6rem',
-          letterSpacing: '0.22em',
-          textTransform: 'uppercase',
-          cursor: 'pointer',
-        }}
-      >
-        Skip
-      </button>
     </div>
   );
 }

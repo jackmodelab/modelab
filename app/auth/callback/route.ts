@@ -15,7 +15,13 @@ export async function GET(request: NextRequest) {
   if (code) {
     const supabase = await createSupabaseServer();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(`${origin}${next}`);
+    if (!error) {
+      // Play the splash on real login landings, but not the password-recovery
+      // flow (which routes through /reset-password before the user is "in").
+      const isRecovery = next.startsWith('/reset-password');
+      const dest = isRecovery ? next : `${next}${next.includes('?') ? '&' : '?'}welcome=1`;
+      return NextResponse.redirect(`${origin}${dest}`);
+    }
   }
 
   return NextResponse.redirect(`${origin}/login?error=auth_callback`);
