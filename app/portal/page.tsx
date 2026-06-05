@@ -12,7 +12,7 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default async function PortalPage() {
   const { staff } = await requireStaff();
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
 
   const now = new Date();
   const todayStart = startOfDay(now);

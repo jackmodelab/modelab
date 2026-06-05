@@ -39,7 +39,7 @@ async function buildBookingRow(formData: FormData) {
   const start = new Date(startsLocal); // datetime-local is interpreted in server tz
   if (Number.isNaN(start.getTime())) return null;
 
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   const { data: service } = await supabase
     .from('services')
     .select('duration_minutes')
@@ -63,7 +63,7 @@ export async function createBooking(formData: FormData) {
   const row = await buildBookingRow(formData);
   if (!row) redirect('/portal/bookings/new?error=1');
 
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   const { data: created } = await supabase
     .from('bookings')
     .insert({ ...row, staff_id: staff.id, status: 'confirmed' } as never)
@@ -99,7 +99,7 @@ export async function updateBooking(formData: FormData) {
   const statusRaw = String(formData.get('status') ?? 'confirmed');
   const status = VALID_STATUS.has(statusRaw) ? statusRaw : 'confirmed';
 
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   await supabase
     .from('bookings')
     .update({ ...row, status } as never)
@@ -129,7 +129,7 @@ export async function addAvailability(formData: FormData) {
   if (Number.isNaN(weekday) || !start_time || !end_time) return;
   if (end_time <= start_time) return; // end must be after start
 
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   await supabase.from('staff_availability').insert({
     staff_id: staff.id,
     weekday,
@@ -145,7 +145,7 @@ export async function deleteAvailability(formData: FormData) {
   await requireStaff();
   const id = String(formData.get('id') ?? '');
   if (!id) return;
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   await supabase.from('staff_availability').delete().eq('id', id);
   revalidatePath('/portal/availability');
 }
@@ -155,7 +155,7 @@ export async function toggleAvailability(formData: FormData) {
   const id = String(formData.get('id') ?? '');
   const next = String(formData.get('next') ?? '') === 'true';
   if (!id) return;
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   await supabase.from('staff_availability').update({ is_active: next } as never).eq('id', id);
   revalidatePath('/portal/availability');
 }
@@ -171,7 +171,7 @@ export async function updateAvailability(formData: FormData) {
   if (!id || !start_time || !end_time) return;
   if (end_time <= start_time) return; // end must be after start
 
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   await supabase
     .from('staff_availability')
     .update({
@@ -187,7 +187,7 @@ export async function updateAvailability(formData: FormData) {
 export async function cancelBooking(id: string) {
   await requireStaff();
   if (!id) return;
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   await supabase
     .from('bookings')
     .update({ status: 'cancelled_24hr_plus', cancellation_reason: 'Cancelled by staff' } as never)
@@ -204,7 +204,7 @@ export async function updateStaffProfile(formData: FormData) {
   const title = String(formData.get('title') ?? '').trim().slice(0, 120);
   const bio = String(formData.get('bio') ?? '').trim().slice(0, 2000);
 
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   await supabase
     .from('staff')
     .update({ display_name: display_name || staff.display_name, title: title || null, bio: bio || null } as never)
@@ -227,7 +227,7 @@ export async function getDocumentSignedUrl(
   await requireStaff();
   if (!documentId) return { error: 'Missing document.' };
 
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   const { data: doc } = await supabase
     .from('documents')
     .select('storage_path')

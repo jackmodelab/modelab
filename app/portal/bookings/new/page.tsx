@@ -6,9 +6,10 @@ import type { ClientRow } from '@/types/database';
 
 export const metadata = { title: 'New booking — MODE Lab' };
 
-export default async function NewBookingPage({ searchParams }: { searchParams: { error?: string } }) {
+export default async function NewBookingPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   await requireStaff();
-  const supabase = createSupabaseServer();
+  const { error: bookingError } = await searchParams;
+  const supabase = await createSupabaseServer();
 
   const [{ data: clients }, { data: services }, { data: locations }] = await Promise.all([
     supabase.from('clients').select('id,full_name,email').order('full_name', { ascending: true }),
@@ -42,7 +43,7 @@ export default async function NewBookingPage({ searchParams }: { searchParams: {
         </div>
       </header>
 
-      {searchParams.error && (
+      {bookingError && (
         <div className="p-form-banner" role="alert">
           Couldn’t create that booking — please check the client, service, location and start time, then try again.
         </div>

@@ -12,7 +12,7 @@ const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0]; // Mon → Sun
 
 export default async function AvailabilityPage() {
   const { staff } = await requireStaff();
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
 
   // 0 = Sun … 6 = Sat, matching the DB weekday column
   const todayWeekday = new Date().getDay();

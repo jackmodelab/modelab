@@ -9,8 +9,8 @@ type CookieToSet = { name: string; value: string; options?: CookieOptions };
  * Server-side Supabase client tied to the user's auth cookie.
  * Use in Server Components and Route Handlers. RLS is enforced.
  */
-export function createSupabaseServer() {
-  const cookieStore = cookies();
+export async function createSupabaseServer() {
+  const cookieStore = await cookies();
 
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

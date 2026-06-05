@@ -6,8 +6,9 @@ import { createSupabaseServer } from '@/lib/supabase/server';
 import { formatTime, bookingStatusLabel } from '@/lib/format';
 import type { ClientRow, BookingRow, ClientPackageRow } from '@/types/database';
 
-export async function generateMetadata({ params }: { params: { id: string } }) {
-  return { title: `Client — MODE Lab`, description: params.id };
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return { title: `Client — MODE Lab`, description: id };
 }
 
 const TIER_LABEL: Record<string, string> = {
@@ -16,14 +17,15 @@ const TIER_LABEL: Record<string, string> = {
   friends_family: 'F&F',
 };
 
-export default async function ClientDetailPage({ params }: { params: { id: string } }) {
+export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   await requireStaff();
-  const supabase = createSupabaseServer();
+  const { id } = await params;
+  const supabase = await createSupabaseServer();
 
   const [{ data: clientData }, { data: bookings }, { data: pkgs }, { data: services }, { data: locations }] = await Promise.all([
-    supabase.from('clients').select('*').eq('id', params.id).maybeSingle(),
-    supabase.from('bookings').select('*').eq('client_id', params.id).order('starts_at', { ascending: true }),
-    supabase.from('client_packages').select('*').eq('client_id', params.id).eq('status', 'active'),
+    supabase.from('clients').select('*').eq('id', id).maybeSingle(),
+    supabase.from('bookings').select('*').eq('client_id', id).order('starts_at', { ascending: true }),
+    supabase.from('client_packages').select('*').eq('client_id', id).eq('status', 'active'),
     supabase.from('services').select('id,name'),
     supabase.from('locations').select('id,name,suburb'),
   ]);

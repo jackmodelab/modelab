@@ -37,6 +37,9 @@ const securityHeaders = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Pin the workspace root: a stray lockfile in the user's home dir made Next 16
+  // infer the wrong root, which broke output-file tracing / page collection.
+  turbopack: { root: import.meta.dirname },
   async redirects() {
     return [
       // Marketing pages still live as static files in /public during the

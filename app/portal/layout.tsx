@@ -53,7 +53,7 @@ export default async function PortalLayout({ children }: { children: React.React
   const fullName = staff.display_name || email.split('@')[0] || 'Staff';
 
   // Lightweight client list powering the ⌘K command palette.
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   const { data: clientRows } = await supabase.from('clients').select('id,full_name,email').order('full_name');
   const paletteClients = ((clientRows ?? []) as Pick<ClientRow, 'id' | 'full_name' | 'email'>[]).map((c) => ({
     id: c.id,

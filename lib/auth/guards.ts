@@ -4,7 +4,7 @@ import type { ClientRow, StaffRow } from '@/types/database';
 
 /** The signed-in auth user, or null. */
 export async function getUser() {
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -16,7 +16,7 @@ export async function getUser() {
  * Returns the auth user + their `clients` row.
  */
 export async function requireClient() {
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -36,7 +36,7 @@ export async function requireClient() {
  * or to /account if signed in but not staff.
  */
 export async function requireStaff() {
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -56,7 +56,7 @@ export async function requireStaff() {
 
 /** True if the signed-in user is an active staff member (no redirect). */
 export async function isStaffUser() {
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   const {
     data: { user },
   } = await supabase.auth.getUser();

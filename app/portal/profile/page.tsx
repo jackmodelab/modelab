@@ -16,9 +16,10 @@ const GOOGLE_FLASH: Record<string, { tone: 'ok' | 'warn'; text: string }> = {
 export default async function StaffProfilePage({
   searchParams,
 }: {
-  searchParams?: { google?: string };
+  searchParams?: Promise<{ google?: string }>;
 }) {
   const { user, staff } = await requireStaff();
+  const sp = searchParams ? await searchParams : undefined;
 
   // The refresh token moved to the service-role-only staff_google_credentials
   // table, so it's no longer on `staff`. connected_at is set on connect and
@@ -26,7 +27,7 @@ export default async function StaffProfilePage({
   const googleConnected = Boolean(staff.google_calendar_connected_at);
   const googleEmail = staff.google_calendar_email;
   const connectedAt = staff.google_calendar_connected_at;
-  const flash = searchParams?.google ? GOOGLE_FLASH[searchParams.google] : undefined;
+  const flash = sp?.google ? GOOGLE_FLASH[sp.google] : undefined;
   const memberSince = staff.created_at ? format(parseISO(staff.created_at), 'MMM yyyy') : '—';
 
   return (

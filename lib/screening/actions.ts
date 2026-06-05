@@ -105,7 +105,7 @@ export async function submitScreening(
     };
   }
 
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
 
   const { error } = await supabase
     .from('client_screenings')

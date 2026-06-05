@@ -4,16 +4,18 @@ import { createSupabaseServer } from '@/lib/supabase/server';
 import { formatDate } from '@/lib/format';
 import type { ArticleRow } from '@/types/database';
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-  return { title: `Research — MODE Lab` , description: params.slug };
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  return { title: `Research — MODE Lab` , description: slug };
 }
 
-export default async function ArticlePage({ params }: { params: { slug: string } }) {
-  const supabase = createSupabaseServer();
+export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const supabase = await createSupabaseServer();
   const { data } = await supabase
     .from('articles')
     .select('*')
-    .eq('slug', params.slug)
+    .eq('slug', slug)
     .eq('published', true)
     .maybeSingle();
 

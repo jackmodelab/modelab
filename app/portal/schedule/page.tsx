@@ -13,7 +13,7 @@ function toDecHour(t: string): number {
 
 export default async function SchedulePage() {
   const { staff } = await requireStaff();
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
 
   // Window: 60 days back → 180 days ahead (plenty for month navigation).
   const from = new Date();

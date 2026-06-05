@@ -13,11 +13,12 @@ const TIER_LABEL: Record<string, string> = {
   friends_family: 'F&F',
 };
 
-export default async function ClientsPage({ searchParams }: { searchParams: { q?: string; tier?: string } }) {
+export default async function ClientsPage({ searchParams }: { searchParams: Promise<{ q?: string; tier?: string }> }) {
   await requireStaff();
-  const supabase = createSupabaseServer();
-  const q = (searchParams.q ?? '').trim().toLowerCase();
-  const tierFilter = (searchParams.tier ?? '').trim();
+  const supabase = await createSupabaseServer();
+  const { q: qParam, tier } = await searchParams;
+  const q = (qParam ?? '').trim().toLowerCase();
+  const tierFilter = (tier ?? '').trim();
 
   const now = new Date().toISOString();
 

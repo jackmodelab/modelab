@@ -4,16 +4,27 @@ import { requireClient } from '@/lib/auth/guards';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { formatTime, bookingStatusLabel } from '@/lib/format';
 import { cancelMemberBooking } from '@/lib/account/actions';
-import type { BookingRow } from '@/types/database';
+// Narrow type: only the columns we select for clients (notes and other staff-only
+// fields are intentionally omitted from the query below).
+type ClientBooking = {
+  id: string;
+  starts_at: string;
+  ends_at: string;
+  service_id: string;
+  staff_id: string | null;
+  location_id: string;
+  status: string;
+  client_id: string;
+};
 import { Icon } from '@/components/portal/icons';
 
 export const metadata = { title: 'My bookings — MODE Lab' };
 
 type Tab = 'upcoming' | 'past';
 
-export default async function BookingsPage({ searchParams }: { searchParams: { tab?: string } }) {
+export default async function BookingsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { client } = await requireClient();
-  const tab: Tab = searchParams.tab === 'past' ? 'past' : 'upcoming';
+  const tab: Tab = (await searchParams).tab === 'past' ? 'past' : 'upcoming';
 
   if (!client) {
     return (
@@ -29,11 +40,13 @@ export default async function BookingsPage({ searchParams }: { searchParams: { t
     );
   }
 
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   const now = new Date().toISOString();
 
   const [{ data: bookings }, { data: services }, { data: locations }, { data: staff }] = await Promise.all([
-    supabase.from('bookings').select('*').eq('client_id', client.id).order('starts_at', { ascending: true }),
+    // Explicit columns only — never select notes, cancellation_reason,
+    // google_calendar_event_id or other staff-only fields here.
+    supabase.from('bookings').select('id,starts_at,ends_at,service_id,staff_id,location_id,status,client_id').eq('client_id', client.id).order('starts_at', { ascending: true }),
     supabase.from('services').select('id,name'),
     supabase.from('locations').select('id,name,suburb'),
     supabase.from('staff').select('id,display_name'),
@@ -43,7 +56,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: { t
   const locationName = new Map(((locations ?? []) as { id: string; name: string; suburb: string | null }[]).map((l) => [l.id, l.suburb || l.name]));
   const staffName = new Map(((staff ?? []) as { id: string; display_name: string }[]).map((s) => [s.id, s.display_name]));
 
-  const all = (bookings ?? []) as BookingRow[];
+  const all = (bookings ?? []) as ClientBooking[];
   const upcoming = all.filter((b) => b.starts_at >= now && !b.status?.startsWith('cancelled') && b.status !== 'no_show');
   const past = all.filter((b) => b.starts_at < now || b.status === 'completed' || b.status?.startsWith('cancelled') || b.status === 'no_show').reverse();
 
@@ -80,10 +93,10 @@ export default async function BookingsPage({ searchParams }: { searchParams: { t
             list.map((b) => {
               const start = parseISO(b.starts_at);
               const end = parseISO(b.ends_at);
-              const past = b.starts_at < now;
+              const isPast = b.starts_at < now;
               const cancelled = b.status?.startsWith('cancelled') || b.status === 'no_show';
               return (
-                <div className={`bk-row ${past ? 'is-past' : ''}`} key={b.id}>
+                <div className={`bk-row ${isPast ? 'is-past' : ''}`} key={b.id}>
                   <div className="bk-day">
                     <div className="mon">{format(start, 'MMM')}</div>
                     <div className="num">{format(start, 'd')}</div>
@@ -93,7 +106,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: { t
                     <div className="bk-title">{serviceName.get(b.service_id) ?? 'Session'}</div>
                     <div className="bk-meta">
                       <span>
-                        {formatTime(start).toLowerCase()} → {formatTime(end).toLowerCase()}
+                        {formatTime(start).toLowerCase()} to {formatTime(end).toLowerCase()}
                       </span>
                       <span className="dot">·</span>
                       <span>{staffName.get(b.staff_id ?? '') ?? 'Coach'}</span>

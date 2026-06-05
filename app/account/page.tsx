@@ -3,15 +3,25 @@ import { format, parseISO, differenceInCalendarDays } from 'date-fns';
 import { requireClient } from '@/lib/auth/guards';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { formatTime, bookingStatusLabel } from '@/lib/format';
-import type { BookingRow, ClientPackageRow, ArticleRow } from '@/types/database';
+import type { ClientPackageRow, ArticleRow } from '@/types/database';
 import { Icon } from '@/components/portal/icons';
+
+// Narrow type: only the columns we select for clients (notes and other staff-only
+// fields are intentionally omitted from the query below).
+type ClientBooking = {
+  id: string;
+  starts_at: string;
+  ends_at: string;
+  service_id: string;
+  location_id: string;
+  status: string;
+};
 
 export const metadata = { title: 'Your account — MODE Lab' };
 
 export default async function AccountPage() {
   const { client } = await requireClient();
 
-  // Provisioning state — no client row yet.
   if (!client) {
     return (
       <>
@@ -26,12 +36,13 @@ export default async function AccountPage() {
     );
   }
 
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   const now = new Date().toISOString();
 
   const [{ data: bookings }, { data: pkgs }, { data: articles }, { data: services }, { data: locations }, { data: packages }] =
     await Promise.all([
-      supabase.from('bookings').select('*').eq('client_id', client.id).order('starts_at', { ascending: true }),
+      // Explicit columns only -- never select notes or other staff-only fields here.
+      supabase.from('bookings').select('id,starts_at,ends_at,service_id,location_id,status').eq('client_id', client.id).order('starts_at', { ascending: true }),
       supabase.from('client_packages').select('*').eq('client_id', client.id).eq('status', 'active'),
       supabase.from('articles').select('*').eq('published', true).order('published_at', { ascending: false }).limit(3),
       supabase.from('services').select('id,name'),
@@ -43,7 +54,7 @@ export default async function AccountPage() {
   const locationName = new Map(((locations ?? []) as { id: string; name: string; suburb: string | null }[]).map((l) => [l.id, l.suburb || l.name]));
   const packageName = new Map(((packages ?? []) as { id: string; name: string }[]).map((p) => [p.id, p.name]));
 
-  const all = (bookings ?? []) as BookingRow[];
+  const all = (bookings ?? []) as ClientBooking[];
   const upcoming = all.filter((b) => b.starts_at >= now && (b.status === 'confirmed' || b.status === 'rescheduled'));
   const past = all.filter((b) => b.starts_at < now || b.status === 'completed').reverse();
   const next = upcoming[0];
@@ -73,7 +84,6 @@ export default async function AccountPage() {
         </div>
       </header>
 
-      {/* Next session — dark card if upcoming, dashed empty state otherwise */}
       {next ? (
         <NextSessionCard
           booking={next}
@@ -90,7 +100,6 @@ export default async function AccountPage() {
         </div>
       )}
 
-      {/* Upcoming + Credits */}
       <div className="ov-grid">
         <section className="surface">
           <div className="surface-head">
@@ -162,7 +171,6 @@ export default async function AccountPage() {
         </section>
       </div>
 
-      {/* Recent history + Research */}
       <div className="ov-grid" style={{ marginTop: 20 }}>
         <section className="surface">
           <div className="surface-head">
@@ -233,7 +241,7 @@ function NextSessionCard({
   serviceName,
   locationName,
 }: {
-  booking: BookingRow;
+  booking: ClientBooking;
   serviceName: string;
   locationName: string;
 }) {

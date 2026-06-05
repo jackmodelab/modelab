@@ -14,7 +14,7 @@ export type ClientScreening = Omit<ClientScreeningRow, 'answers'> & {
 export async function getScreeningForClient(
   clientId: string
 ): Promise<ClientScreening | null> {
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   const { data } = await supabase
     .from('client_screenings')
     .select('*')
@@ -28,7 +28,7 @@ export async function getScreeningForClient(
  * Convenience boolean: has this client completed the required pre-screening?
  */
 export async function hasCompletedScreening(clientId: string): Promise<boolean> {
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   const { data } = await supabase
     .from('client_screenings')
     .select('id')

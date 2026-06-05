@@ -6,7 +6,7 @@ import type { ArticleRow } from '@/types/database';
 export const metadata = { title: 'Research — MODE Lab' };
 
 export default async function ResearchPage() {
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   const { data } = await supabase
     .from('articles')
     .select('*')

@@ -113,7 +113,11 @@
 
   /* fill any flask placeholders left in page markup */
   Array.prototype.forEach.call(document.querySelectorAll("[data-flask]"), function (el) {
-    el.innerHTML = '<img src="assets/img/flask-logo.svg" class="flask-img" alt="" />';
+    var img = document.createElement("img");
+    img.src = "assets/img/flask-logo.svg";
+    img.className = "flask-img";
+    img.alt = "";
+    el.replaceChildren(img);
   });
 
   /* ---- Mobile nav toggle ------------------------------------------------ */

@@ -49,7 +49,7 @@ export async function cancelMemberBooking(formData: FormData) {
   const id = String(formData.get('id') ?? '');
   if (!id) return;
 
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
 
   // Fetch the booking to confirm ownership + compute lead time.
   const { data: booking } = await supabase
@@ -167,7 +167,7 @@ export async function updateProfile(formData: FormData) {
   const full_name = String(formData.get('full_name') ?? '').trim().slice(0, 120);
   const phone = String(formData.get('phone') ?? '').trim().slice(0, 40);
 
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   await supabase
     .from('clients')
     .update({ full_name: full_name || null, phone: phone || null } as never)

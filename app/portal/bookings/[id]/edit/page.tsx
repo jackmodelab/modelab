@@ -12,14 +12,16 @@ export default async function EditBookingPage({
   params,
   searchParams,
 }: {
-  params: { id: string };
-  searchParams: { error?: string };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   await requireStaff();
-  const supabase = createSupabaseServer();
+  const { id } = await params;
+  const { error: saveError } = await searchParams;
+  const supabase = await createSupabaseServer();
 
   const [{ data: bookingData }, { data: clients }, { data: services }, { data: locations }] = await Promise.all([
-    supabase.from('bookings').select('*').eq('id', params.id).maybeSingle(),
+    supabase.from('bookings').select('*').eq('id', id).maybeSingle(),
     supabase.from('clients').select('id,full_name,email').order('full_name', { ascending: true }),
     supabase.from('services').select('id,name,duration_minutes').eq('is_active', true).order('sort_order', { ascending: true }),
     supabase.from('locations').select('id,name,suburb').order('name', { ascending: true }),
@@ -54,7 +56,7 @@ export default async function EditBookingPage({
         </div>
       </header>
 
-      {searchParams.error && (
+      {saveError && (
         <div className="p-form-banner" role="alert">
           Couldn’t save those changes — please check the fields and try again.
         </div>

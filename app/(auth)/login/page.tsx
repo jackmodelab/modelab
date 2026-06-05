@@ -9,12 +9,13 @@ export const metadata = { title: 'Sign in — MODE Lab' };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { next?: string };
+  searchParams: Promise<{ next?: string }>;
 }) {
   // Already signed in? Send them on.
   if (await getUser()) {
     redirect((await isStaffUser()) ? '/portal' : '/account');
   }
+  const { next } = await searchParams;
 
   return (
     <div className="auth-card">
@@ -27,7 +28,7 @@ export default async function LoginPage({
       <h1>Welcome back.</h1>
       <p className="lede">Sign in to your member account.</p>
 
-      <AuthForm mode="login" next={searchParams.next} />
+      <AuthForm mode="login" next={next} />
 
       <p className="auth-alt">
         New here?{' '}

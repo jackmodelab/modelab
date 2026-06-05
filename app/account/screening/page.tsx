@@ -8,7 +8,7 @@ export const metadata = { title: 'Pre-screening — MODE Lab' };
 export default async function ScreeningPage({
   searchParams,
 }: {
-  searchParams: { completed?: string };
+  searchParams: Promise<{ completed?: string }>;
 }) {
   const { user, client } = await requireClient();
 
@@ -27,7 +27,7 @@ export default async function ScreeningPage({
   }
 
   const screening = await getScreeningForClient(client.id);
-  const justCompleted = searchParams.completed === '1';
+  const justCompleted = (await searchParams).completed === '1';
   const email = client.email ?? user.email ?? '';
 
   return (

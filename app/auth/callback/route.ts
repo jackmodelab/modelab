@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const next = raw.startsWith('/') && !raw.startsWith('//') && !raw.startsWith('/\\') ? raw : '/account';
 
   if (code) {
-    const supabase = createSupabaseServer();
+    const supabase = await createSupabaseServer();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) return NextResponse.redirect(`${origin}${next}`);
   }

@@ -29,7 +29,7 @@ export default async function PackagesPage() {
     );
   }
 
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
 
   const [{ data: clientPkgs }, { data: catalog }] = await Promise.all([
     supabase

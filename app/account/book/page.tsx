@@ -18,7 +18,7 @@ export default async function BookPage() {
   // health questionnaire must be complete before a booking can be confirmed.
   const screeningComplete = client ? await hasCompletedScreening(client.id) : false;
 
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
 
   const [{ data: services }, { data: locations }, { data: staff }, { data: avail }] = await Promise.all([
     supabase

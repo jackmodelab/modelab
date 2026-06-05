@@ -18,8 +18,8 @@ function readCredentials(formData: FormData) {
 }
 
 /** Best-effort per-IP throttle for an auth action. Returns true if blocked. */
-function authThrottled(scope: string, limit: number, windowMs: number): boolean {
-  const ip = clientIp(headers());
+async function authThrottled(scope: string, limit: number, windowMs: number): Promise<boolean> {
+  const ip = clientIp(await headers());
   return !rateLimit(`${scope}:${ip}`, limit, windowMs).ok;
 }
 
@@ -30,9 +30,9 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
 
   if (!email || !password) return { error: 'Enter your email and password.' };
   // Throttle credential stuffing — 10 attempts / 5 min per IP (Supabase also throttles).
-  if (authThrottled('login', 10, 5 * 60 * 1000)) return { error: TOO_MANY };
+  if (await authThrottled('login', 10, 5 * 60 * 1000)) return { error: TOO_MANY };
 
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { error: error.message };
 
@@ -63,9 +63,9 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
   if (!email || !password) return { error: 'Enter your email and password.' };
   if (password.length < PASSWORD_MIN) return { error: `Password must be at least ${PASSWORD_MIN} characters.` };
   // Throttle account-creation abuse — 5 signups / hour per IP.
-  if (authThrottled('signup', 5, 60 * 60 * 1000)) return { error: TOO_MANY };
+  if (await authThrottled('signup', 5, 60 * 60 * 1000)) return { error: TOO_MANY };
 
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -91,7 +91,7 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
 }
 
 export async function signOut() {
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   await supabase.auth.signOut();
   revalidatePath('/', 'layout');
   redirect('/login');
@@ -107,9 +107,9 @@ export async function requestPasswordReset(_prev: AuthState, formData: FormData)
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
   if (!email) return { error: 'Enter your email.' };
   // Throttle reset-email abuse — 5 requests / hour per IP.
-  if (authThrottled('pwreset', 5, 60 * 60 * 1000)) return { error: TOO_MANY };
+  if (await authThrottled('pwreset', 5, 60 * 60 * 1000)) return { error: TOO_MANY };
 
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/reset-password`,
   });
@@ -129,7 +129,7 @@ export async function updatePassword(_prev: AuthState, formData: FormData): Prom
   if (password.length < PASSWORD_MIN) return { error: `Password must be at least ${PASSWORD_MIN} characters.` };
   if (password !== confirm) return { error: 'Those passwords don’t match.' };
 
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   const {
     data: { user },
   } = await supabase.auth.getUser();

@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 });
   }
 
-  const supabase = createSupabaseServer();
+  const supabase = await createSupabaseServer();
   const { error } = await supabase.from('leads').insert({
     email,
     name: name || null,
