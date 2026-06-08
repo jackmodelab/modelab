@@ -26,6 +26,7 @@ export default async function SchedulePage() {
       supabase
         .from('bookings')
         .select('*')
+        .neq('status', 'pending') // pending requests live on /portal/requests
         .gte('starts_at', from.toISOString())
         .lte('starts_at', to.toISOString())
         .order('starts_at', { ascending: true }),

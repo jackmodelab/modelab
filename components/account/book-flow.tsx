@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { format, addDays, isSameDay, parseISO } from 'date-fns';
 import { Icon } from '@/components/portal/icons';
-import { requestBooking } from '@/lib/account/actions';
+import { requestBooking, requestCustomBooking } from '@/lib/account/actions';
 
 export type FlowService = { id: string; name: string; durationMinutes: number; blurb: string | null };
 export type FlowLocation = { id: string; name: string; address: string };
@@ -36,13 +36,29 @@ function minutesTo12h(min: number) {
   return `${h}:${pad(m)}${ampm}`;
 }
 
+/** Changeover buffer reserved after a session before the next slot opens. */
+const BUFFER_MINUTES = 15;
+
 /**
- * Generate 15-minute candidate start slots that fit `service.durationMinutes`
- * inside an availability block.
+ * The 30- and 45-minute training sessions carry a 15-minute changeover buffer;
+ * other services (e.g. the body-comp scan) get none. The buffer is reserved
+ * after the session so back-to-back hourly slots stay clear.
+ */
+export function bufferFor(serviceMin: number) {
+  return serviceMin === 30 || serviceMin === 45 ? BUFFER_MINUTES : 0;
+}
+
+/**
+ * Generate on-the-hour candidate start slots that fit `serviceMin` plus its
+ * changeover buffer inside an availability block. Slots start at the top of the
+ * hour and step hourly.
  */
 function slotsForBlock(b: FlowAvailabilityBlock, serviceMin: number) {
+  const need = serviceMin + bufferFor(serviceMin);
   const out: number[] = [];
-  for (let t = b.startMinute; t + serviceMin <= b.endMinute; t += 15) out.push(t);
+  // First slot on/after the block start, snapped up to the top of the hour.
+  const first = Math.ceil(b.startMinute / 60) * 60;
+  for (let t = first; t + need <= b.endMinute; t += 60) out.push(t);
   return out;
 }
 
@@ -65,6 +81,13 @@ export function BookFlow({
   const [dayIdx, setDayIdx] = useState<number>(0); // 0..13 from today+1
   const [coachId, setCoachId] = useState<string | null>(null);
   const [slotMin, setSlotMin] = useState<number | null>(null);
+
+  // "Request a specific time" — an off-grid request the trainer must accept.
+  const [showCustom, setShowCustom] = useState(false);
+  const [customCoachId, setCustomCoachId] = useState<string>('');
+  const [customDate, setCustomDate] = useState<string>('');
+  const [customTime, setCustomTime] = useState<string>('');
+  const [customNote, setCustomNote] = useState<string>('');
 
   const service = useMemo(() => services.find((s) => s.id === serviceId) ?? null, [serviceId, services]);
   const location = useMemo(() => locations.find((l) => l.id === locationId) ?? null, [locationId, locations]);
@@ -139,6 +162,21 @@ export function BookFlow({
     d.setHours(Math.floor(slotMin / 60), slotMin % 60, 0, 0);
     return d.toISOString();
   })();
+
+  // Custom (off-grid) request — combine the date + time inputs in the browser's
+  // local zone (clinic time), mirroring the grid path above.
+  const customStartsAtIso = (() => {
+    if (!customDate || !customTime) return '';
+    const d = new Date(`${customDate}T${customTime}`);
+    return Number.isNaN(d.getTime()) ? '' : d.toISOString();
+  })();
+  const customValid = !!customCoachId && !!customStartsAtIso && new Date(customStartsAtIso) > new Date();
+
+  const openCustom = () => {
+    if (!customDate) setCustomDate(format(days[dayIdx], 'yyyy-MM-dd'));
+    if (!customCoachId && coaches.length === 1) setCustomCoachId(coaches[0].id);
+    setShowCustom(true);
+  };
 
   return (
     <div className="flow">
@@ -256,6 +294,95 @@ export function BookFlow({
                 );
               })
             )}
+
+            {/* Off-grid: request a specific time the trainer must accept. */}
+            <div className="custom-req">
+              {!showCustom ? (
+                <button type="button" className="custom-req-open" onClick={openCustom}>
+                  Can&apos;t find a time? <strong>Request a specific time →</strong>
+                </button>
+              ) : (
+                <form action={requestCustomBooking} className="custom-req-form">
+                  <input type="hidden" name="service_id" value={service.id} />
+                  <input type="hidden" name="location_id" value={location.id} />
+                  <input type="hidden" name="starts_at" value={customStartsAtIso} />
+
+                  <div className="custom-req-head">
+                    <div>
+                      <div className="custom-req-title">Request a specific time</div>
+                      <div className="custom-req-sub">
+                        Outside the listed hours — your trainer will review and accept or decline.
+                      </div>
+                    </div>
+                    <button type="button" className="custom-req-close" onClick={() => setShowCustom(false)}>
+                      <Icon.close />
+                    </button>
+                  </div>
+
+                  <div className="custom-req-grid">
+                    <label className="fld">
+                      <span>Coach</span>
+                      <select
+                        name="coach_id"
+                        value={customCoachId}
+                        onChange={(e) => setCustomCoachId(e.target.value)}
+                        required
+                      >
+                        <option value="">Select a coach…</option>
+                        {coaches.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="fld">
+                      <span>Date</span>
+                      <input
+                        type="date"
+                        value={customDate}
+                        min={format(days[0], 'yyyy-MM-dd')}
+                        onChange={(e) => setCustomDate(e.target.value)}
+                        required
+                      />
+                    </label>
+                    <label className="fld">
+                      <span>Time</span>
+                      <input
+                        type="time"
+                        value={customTime}
+                        onChange={(e) => setCustomTime(e.target.value)}
+                        required
+                      />
+                    </label>
+                  </div>
+
+                  <label className="fld" style={{ marginTop: 12 }}>
+                    <span>Note for your trainer (optional)</span>
+                    <textarea
+                      name="note"
+                      rows={2}
+                      value={customNote}
+                      onChange={(e) => setCustomNote(e.target.value)}
+                      maxLength={500}
+                      placeholder="e.g. I can only make early mornings this week."
+                    />
+                  </label>
+
+                  <div style={{ marginTop: 14 }}>
+                    {screeningComplete ? (
+                      <button className="btn" type="submit" disabled={!customValid}>
+                        Send request to trainer <Icon.arrowR />
+                      </button>
+                    ) : (
+                      <Link className="btn" href="/account/screening">
+                        Complete pre-screening <Icon.arrowR />
+                      </Link>
+                    )}
+                  </div>
+                </form>
+              )}
+            </div>
           </>
         )}
 

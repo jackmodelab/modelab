@@ -8,33 +8,36 @@ import { requireStaff } from '@/lib/auth/guards';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import type { ClientRow } from '@/types/database';
 
-const SECTIONS: RailSection[] = [
-  {
-    label: 'Workspace',
-    items: [
-      { href: '/portal',              label: 'Today',        icon: 'dashboard', matchExact: true },
-      { href: '/portal/schedule',     label: 'Calendar',     icon: 'calendar' },
-      { href: '/portal/availability', label: 'Availability', icon: 'clock' },
-    ],
-  },
-  {
-    label: 'Library',
-    items: [
-      { href: '/portal/clients',      label: 'Clients',      icon: 'users' },
-    ],
-  },
-  {
-    label: 'Account',
-    items: [
-      { href: '/portal/profile',      label: 'Profile',      icon: 'user' },
-    ],
-  },
-];
+function buildSections(pendingCount: number): RailSection[] {
+  return [
+    {
+      label: 'Workspace',
+      items: [
+        { href: '/portal',              label: 'Today',        icon: 'dashboard', matchExact: true },
+        { href: '/portal/schedule',     label: 'Calendar',     icon: 'calendar' },
+        { href: '/portal/requests',     label: 'Requests',     icon: 'bell', badge: pendingCount || null, badgeWarn: pendingCount > 0 },
+        { href: '/portal/availability', label: 'Availability', icon: 'clock' },
+      ],
+    },
+    {
+      label: 'Library',
+      items: [
+        { href: '/portal/clients',      label: 'Clients',      icon: 'users' },
+      ],
+    },
+    {
+      label: 'Account',
+      items: [
+        { href: '/portal/profile',      label: 'Profile',      icon: 'user' },
+      ],
+    },
+  ];
+}
 
 const MOBILE_TABS: MobileTab[] = [
   { href: '/portal',          label: 'Today',    icon: 'dashboard' },
   { href: '/portal/schedule', label: 'Calendar', icon: 'calendar' },
-  { href: '/portal/clients',  label: 'Clients',  icon: 'users' },
+  { href: '/portal/requests', label: 'Requests', icon: 'bell' },
   { href: '/portal/profile',  label: 'Profile',  icon: 'user' },
 ];
 
@@ -52,9 +55,13 @@ export default async function PortalLayout({ children }: { children: React.React
   const email = user.email ?? '';
   const fullName = staff.display_name || email.split('@')[0] || 'Staff';
 
-  // Lightweight client list powering the ⌘K command palette.
+  // Lightweight client list powering the ⌘K command palette, plus the count of
+  // pending time requests for the Requests nav badge.
   const supabase = await createSupabaseServer();
-  const { data: clientRows } = await supabase.from('clients').select('id,full_name,email').order('full_name');
+  const [{ data: clientRows }, { count: pendingCount }] = await Promise.all([
+    supabase.from('clients').select('id,full_name,email').order('full_name'),
+    supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+  ]);
   const paletteClients = ((clientRows ?? []) as Pick<ClientRow, 'id' | 'full_name' | 'email'>[]).map((c) => ({
     id: c.id,
     name: c.full_name || c.email,
@@ -64,7 +71,7 @@ export default async function PortalLayout({ children }: { children: React.React
   return (
     <AppFrame
       portal="staff"
-      rail={<Rail portal="staff" sections={SECTIONS} user={{ initials: initialsFor(staff.display_name, email), fullName, email }} />}
+      rail={<Rail portal="staff" sections={buildSections(pendingCount ?? 0)} user={{ initials: initialsFor(staff.display_name, email), fullName, email }} />}
       topbar={<StaffTopbar clients={paletteClients} />}
       mobileTabs={<MobileTabs tabs={MOBILE_TABS} />}
     >

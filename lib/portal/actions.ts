@@ -118,6 +118,54 @@ export async function updateBooking(formData: FormData) {
   redirect('/portal/schedule?updated=1');
 }
 
+/**
+ * Accept a member's pending specific-time request: flip it to `confirmed` and
+ * add it to the coach's Google Calendar (the event isn't created until now).
+ */
+export async function acceptBookingRequest(formData: FormData) {
+  await requireStaff();
+  const id = String(formData.get('id') ?? '');
+  if (!id) return;
+
+  const supabase = await createSupabaseServer();
+  // Only a still-pending request can be accepted (guards against double-action).
+  const { data: updated } = await supabase
+    .from('bookings')
+    .update({ status: 'confirmed' } as never)
+    .eq('id', id)
+    .eq('status', 'pending')
+    .select('id')
+    .maybeSingle();
+
+  if ((updated as { id: string } | null)?.id) {
+    await syncBookingToCalendar(id); // create the event now that it's confirmed
+  }
+
+  revalidatePath('/portal/requests');
+  revalidatePath('/portal/schedule');
+  revalidatePath('/portal');
+}
+
+/** Decline a member's pending request (no calendar event was ever created). */
+export async function declineBookingRequest(formData: FormData) {
+  await requireStaff();
+  const id = String(formData.get('id') ?? '');
+  if (!id) return;
+
+  const supabase = await createSupabaseServer();
+  await supabase
+    .from('bookings')
+    .update({
+      status: 'cancelled_24hr_plus',
+      cancellation_reason: 'Request declined by trainer',
+    } as never)
+    .eq('id', id)
+    .eq('status', 'pending');
+
+  revalidatePath('/portal/requests');
+  revalidatePath('/portal');
+}
+
 /** Add a weekly recurring availability block for the signed-in staff member. */
 export async function addAvailability(formData: FormData) {
   const { staff } = await requireStaff();

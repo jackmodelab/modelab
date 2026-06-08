@@ -540,6 +540,8 @@
 .app .status-dot.is-done::before { background: var(--success); }
 .app .status-dot.is-cancelled { color: var(--slate-soft); }
 .app .status-dot.is-cancelled::before { background: transparent; border: 1px solid var(--slate-soft); }
+.app .status-dot.is-pending { color: var(--warn, #b8860b); }
+.app .status-dot.is-pending::before { background: var(--warn, #b8860b); }
 .app .pill {
   display: inline-flex; align-items: center; gap: 6px;
   font-family: var(--font-mono); font-size: 10px;
@@ -780,6 +782,51 @@
   letter-spacing: 0.04em;
   border: 1px dashed var(--line-strong);
   border-radius: var(--radius);
+}
+
+/* Off-grid "request a specific time" — trainer-accepted booking request */
+.app .custom-req { margin-top: 16px; }
+.app .custom-req-open {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px dashed var(--line-strong); border-radius: var(--radius);
+  background: var(--lab-white); color: var(--slate);
+  font-size: 13px; cursor: pointer; text-align: center;
+  transition: border-color .12s var(--p-ease), color .12s var(--p-ease);
+}
+.app .custom-req-open:hover { border-color: var(--engineered-black); color: var(--engineered-black); }
+.app .custom-req-open strong { color: var(--engineered-black); font-weight: 600; }
+.app .custom-req-form {
+  background: var(--pure-white);
+  border: 1px solid var(--line); border-radius: var(--radius-lg);
+  padding: 20px 22px;
+}
+.app .custom-req-head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 16px; }
+.app .custom-req-title { font-weight: 600; font-size: 15px; }
+.app .custom-req-sub { color: var(--slate); font-size: 12.5px; margin-top: 3px; line-height: 1.5; }
+.app .custom-req-close {
+  margin-left: auto; flex-shrink: 0;
+  background: none; border: none; cursor: pointer; color: var(--slate-soft);
+  padding: 2px; line-height: 0;
+}
+.app .custom-req-close:hover { color: var(--engineered-black); }
+.app .custom-req-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+@media (max-width: 560px) { .app .custom-req-grid { grid-template-columns: 1fr; } }
+.app .fld { display: flex; flex-direction: column; gap: 6px; }
+.app .fld > span {
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--slate);
+}
+.app .fld input, .app .fld select, .app .fld textarea {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--lab-white); color: var(--engineered-black);
+  font-size: 13.5px; font-family: inherit;
+}
+.app .fld textarea { resize: vertical; line-height: 1.5; }
+.app .fld input:focus, .app .fld select:focus, .app .fld textarea:focus {
+  outline: none; border-color: var(--engineered-black);
 }
 
 .app .confirm-card {

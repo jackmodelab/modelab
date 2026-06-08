@@ -35,7 +35,8 @@ export default async function PortalPage() {
     ]);
 
   const allClients = (clients ?? []) as ClientRow[];
-  const week = (weekBookings ?? []) as BookingRow[];
+  // Pending requests live on the Requests page, not the confirmed dashboard.
+  const week = ((weekBookings ?? []) as BookingRow[]).filter((b) => b.status !== 'pending');
   const today = week.filter((b) => isSameDay(parseISO(b.starts_at), now));
   const upcomingWeek = week.filter((b) => parseISO(b.starts_at) > todayEnd);
   const availability = (avail ?? []) as StaffAvailabilityRow[];

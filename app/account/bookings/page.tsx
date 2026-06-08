@@ -114,7 +114,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
                       <span>{locationName.get(b.location_id) ?? '—'}</span>
                       <span className="dot">·</span>
                       <span
-                        className={`status-dot ${b.status === 'completed' ? 'is-done' : cancelled ? 'is-cancelled' : ''}`}
+                        className={`status-dot ${b.status === 'completed' ? 'is-done' : cancelled ? 'is-cancelled' : b.status === 'pending' ? 'is-pending' : ''}`}
                       >
                         {bookingStatusLabel(b.status)}
                       </span>

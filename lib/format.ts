@@ -22,6 +22,7 @@ export function formatPrice(cents: number): string {
 }
 
 const BOOKING_LABELS: Record<string, string> = {
+  pending: 'Awaiting trainer',
   confirmed: 'Confirmed',
   completed: 'Completed',
   cancelled_24hr_plus: 'Cancelled',

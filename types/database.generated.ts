@@ -754,6 +754,7 @@ export type Database = {
         | "cancelled_under_24hr"
         | "no_show"
         | "rescheduled"
+        | "pending"
       discount_tier: "standard" | "student_senior" | "friends_family"
       location_status: "active" | "coming_soon" | "closed"
       package_status:
@@ -900,6 +901,7 @@ export const Constants = {
         "cancelled_under_24hr",
         "no_show",
         "rescheduled",
+        "pending",
       ],
       discount_tier: ["standard", "student_senior", "friends_family"],
       location_status: ["active", "coming_soon", "closed"],
