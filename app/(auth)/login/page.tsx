@@ -36,16 +36,6 @@ export default async function LoginPage({
           Create an account &rarr;
         </Link>
       </p>
-
-      <div className="auth-hint">
-        <strong>TEST ACCOUNTS</strong> (after running the seed)
-        <br />
-        Member &nbsp;→ client@modelab.test
-        <br />
-        Staff &nbsp;&nbsp;&nbsp;→ jack@modelab.test
-        <br />
-        Password → ModeLab!2026
-      </div>
     </div>
   );
 }

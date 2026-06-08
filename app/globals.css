@@ -211,3 +211,23 @@
 .article-item .cat { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--slate-soft); }
 .article-item h3 { font-size: var(--step-1); margin-top: 0.5rem; }
 .article-item p { margin-top: 0.5rem; color: var(--data-slate); font-size: 0.94rem; }
+
+/* ---- Loading skeleton ---------------------------------------------------- */
+.skel {
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    rgba(127, 127, 127, 0.12) 25%,
+    rgba(127, 127, 127, 0.22) 37%,
+    rgba(127, 127, 127, 0.12) 63%
+  );
+  background-size: 400% 100%;
+  animation: skel-shimmer 1.4s ease infinite;
+}
+@keyframes skel-shimmer {
+  0%   { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skel { animation: none; }
+}
