@@ -918,7 +918,6 @@
 .app .hour-label { position: absolute; top: -8px; right: 8px; font-family: var(--font-mono); font-size: 10px; color: var(--slate-soft); background: var(--pure-white); padding: 0 4px; }
 .app .day-col { border-right: 1px solid var(--line); position: relative; background: var(--pure-white); cursor: pointer; transition: background .15s var(--p-ease); }
 .app .day-col:last-child { border-right: none; }
-.app .day-col:hover { background: var(--lab-white); }
 .app .day-col.is-today { background: rgba(14, 15, 17, 0.018); }
 .app .hour-cell { height: 56px; border-bottom: 1px solid var(--line); }
 .app .event {
@@ -1603,7 +1602,8 @@
 }
 
 /* Clickable empty cells — quick book / block on click */
-.app .hour-cell--book { cursor: pointer; }
+.app .hour-cell--book { cursor: pointer; transition: background .12s var(--p-ease); }
+.app .hour-cell--book:hover { background: var(--lab-white); }
 
 /* One-off blocked-out time overlay */
 .app .cal-block {
