@@ -237,6 +237,37 @@ export async function requestCustomBooking(formData: FormData) {
   redirect(`/account/bookings?requested=1`);
 }
 
+/**
+ * Mint a short-lived signed URL for one of the signed-in client's own shared
+ * documents. The `documents` RLS ("read own") already scopes reads to the
+ * caller, so a row that isn't theirs simply returns null here. Returns
+ * `{ url }` or `{ error }` (never throws) for a graceful download button.
+ */
+export async function getMyDocumentSignedUrl(
+  documentId: string,
+): Promise<{ url: string } | { error: string }> {
+  const { client } = await requireClient();
+  if (!client) return { error: 'Please sign in.' };
+  if (!documentId) return { error: 'Missing document.' };
+
+  const supabase = await createSupabaseServer();
+  const { data: doc } = await supabase
+    .from('documents')
+    .select('storage_path')
+    .eq('id', documentId)
+    .maybeSingle();
+
+  const storagePath = (doc as { storage_path: string } | null)?.storage_path;
+  if (!storagePath) return { error: 'File not found.' };
+
+  const { data, error } = await supabase.storage
+    .from('client-files')
+    .createSignedUrl(storagePath, 60, { download: true });
+
+  if (error || !data?.signedUrl) return { error: 'File unavailable.' };
+  return { url: data.signedUrl };
+}
+
 /** Save profile updates (name + phone). Email is auth-managed and read-only here. */
 export async function updateProfile(formData: FormData) {
   const { client } = await requireClient();

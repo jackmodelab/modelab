@@ -4,7 +4,9 @@ import { format, parseISO } from 'date-fns';
 import { requireStaff } from '@/lib/auth/guards';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { formatTime, bookingStatusLabel } from '@/lib/format';
-import type { ClientRow, BookingRow, ClientPackageRow } from '@/types/database';
+import { ClientFiles } from '@/components/portal/client-files';
+import { ClientDangerZone } from '@/components/portal/client-danger-zone';
+import type { ClientRow, BookingRow, ClientPackageRow, DocumentRow } from '@/types/database';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -17,17 +19,25 @@ const TIER_LABEL: Record<string, string> = {
   friends_family: 'F&F',
 };
 
-export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ClientDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ error?: string; file_error?: string }>;
+}) {
   await requireStaff();
   const { id } = await params;
+  const sp = (searchParams ? await searchParams : {}) as { error?: string; file_error?: string };
   const supabase = await createSupabaseServer();
 
-  const [{ data: clientData }, { data: bookings }, { data: pkgs }, { data: services }, { data: locations }] = await Promise.all([
+  const [{ data: clientData }, { data: bookings }, { data: pkgs }, { data: services }, { data: locations }, { data: docs }] = await Promise.all([
     supabase.from('clients').select('*').eq('id', id).maybeSingle(),
     supabase.from('bookings').select('*').eq('client_id', id).order('starts_at', { ascending: true }),
     supabase.from('client_packages').select('*').eq('client_id', id).eq('status', 'active'),
     supabase.from('services').select('id,name'),
     supabase.from('locations').select('id,name,suburb'),
+    supabase.from('documents').select('id,title,description,file_type,created_at').eq('client_id', id).order('created_at', { ascending: false }),
   ]);
 
   const client = clientData as ClientRow | null;
@@ -35,6 +45,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
   const bks = (bookings ?? []) as BookingRow[];
   const activePkgs = (pkgs ?? []) as ClientPackageRow[];
+  const documents = (docs ?? []) as Pick<DocumentRow, 'id' | 'title' | 'description' | 'file_type' | 'created_at'>[];
+  const archived = Boolean(client.archived_at);
+  const fileError = (['missing', 'size', 'upload'] as const).find((e) => e === sp.file_error);
   const serviceName = new Map(((services ?? []) as { id: string; name: string }[]).map((s) => [s.id, s.name]));
   const locationName = new Map(((locations ?? []) as { id: string; name: string; suburb: string | null }[]).map((l) => [l.id, l.suburb || l.name]));
 
@@ -57,9 +70,23 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           <h1>{client.full_name || '—'}</h1>
         </div>
         <div className="page-head-actions">
+          {archived && <span className="pill">Archived</span>}
           <span className="pill">{TIER_LABEL[client.discount_tier] ?? client.discount_tier}</span>
         </div>
       </header>
+
+      {archived && (
+        <div
+          style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            background: '#fff8e6', border: '1px solid #f3e0a8', borderRadius: 10,
+            padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#7a5e10',
+          }}
+        >
+          This client is archived — they’re hidden from active lists and can’t access the member portal.
+          Reactivate them below to restore access.
+        </div>
+      )}
 
       <section className="surface" style={{ marginBottom: 20 }}>
         <div className="client-summary">
@@ -171,6 +198,15 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           </div>
         </section>
       </div>
+
+      <ClientFiles clientId={client.id} documents={documents} uploadError={fileError} />
+
+      <ClientDangerZone
+        clientId={client.id}
+        clientName={client.full_name ?? ''}
+        archived={archived}
+        nameError={sp.error === 'name'}
+      />
     </>
   );
 }

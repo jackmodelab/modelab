@@ -18,6 +18,23 @@ import type { Database as Generated } from './database.generated';
 export type Database = Generated & {
   public: Generated['public'] & {
     Tables: Generated['public']['Tables'] & {
+      // Archive columns added in 20260609120000_client_archive.sql, not yet in
+      // database.generated.ts. Merge them in until `npm run db:types` is re-run.
+      clients: {
+        Row: Generated['public']['Tables']['clients']['Row'] & {
+          archived_at: string | null;
+          archived_by: string | null;
+        };
+        Insert: Generated['public']['Tables']['clients']['Insert'] & {
+          archived_at?: string | null;
+          archived_by?: string | null;
+        };
+        Update: Generated['public']['Tables']['clients']['Update'] & {
+          archived_at?: string | null;
+          archived_by?: string | null;
+        };
+        Relationships: Generated['public']['Tables']['clients']['Relationships'];
+      };
       staff_google_credentials: {
         Row: {
           staff_id: string;

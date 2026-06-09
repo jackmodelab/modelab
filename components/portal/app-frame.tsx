@@ -14,7 +14,8 @@ export function AppFrame({
 }: {
   portal: 'staff' | 'member';
   rail: ReactNode;
-  topbar: ReactNode;
+  /** Optional. The portals run headerless — only render when provided. */
+  topbar?: ReactNode;
   mobileTabs?: ReactNode;
   children: ReactNode;
 }) {

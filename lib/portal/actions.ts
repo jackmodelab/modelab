@@ -245,6 +245,182 @@ export async function cancelBooking(id: string) {
   revalidatePath('/portal');
 }
 
+// =============================================================================
+// CLIENT LIFECYCLE — archive / reactivate / hard delete
+// =============================================================================
+
+/** Archive a client: keep their data but drop them from active lists + portal. */
+export async function archiveClient(formData: FormData) {
+  const { staff } = await requireStaff();
+  const id = String(formData.get('id') ?? '');
+  if (!id) return;
+
+  const supabase = await createSupabaseServer();
+  await supabase
+    .from('clients')
+    .update({ archived_at: new Date().toISOString(), archived_by: staff.id } as never)
+    .eq('id', id);
+
+  revalidatePath('/portal/clients');
+  revalidatePath(`/portal/clients/${id}`);
+  redirect(`/portal/clients/${id}?archived=1`);
+}
+
+/**
+ * Reactivate an archived client and email them a fresh sign-in link. The auth
+ * user is untouched by archiving, so a password-reset email is the simplest way
+ * to hand access back (mirrors lib/auth/actions.ts → requestPasswordReset).
+ */
+export async function reactivateClient(formData: FormData) {
+  await requireStaff();
+  const id = String(formData.get('id') ?? '');
+  if (!id) return;
+
+  const supabase = await createSupabaseServer();
+  const { data: client } = await supabase
+    .from('clients')
+    .select('email')
+    .eq('id', id)
+    .maybeSingle();
+
+  await supabase
+    .from('clients')
+    .update({ archived_at: null, archived_by: null } as never)
+    .eq('id', id);
+
+  // Re-establish the client's access with a reset/sign-in email. Best-effort —
+  // a mail hiccup must not block the reactivation itself.
+  const email = (client as { email: string } | null)?.email;
+  if (email) {
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/reset-password`,
+    });
+  }
+
+  revalidatePath('/portal/clients');
+  revalidatePath(`/portal/clients/${id}`);
+  redirect(`/portal/clients/${id}?reactivated=1`);
+}
+
+/**
+ * Permanently delete a client. Guarded by a typed-name confirmation. When the
+ * client has an auth user we delete THAT (auth.users → clients is ON DELETE
+ * CASCADE, which then cascades to bookings / packages / documents / etc.);
+ * otherwise we delete the clients row directly. Storage objects don't cascade,
+ * so we sweep the client's folder in the private bucket first (best-effort).
+ */
+export async function deleteClient(formData: FormData) {
+  await requireStaff();
+  const id = String(formData.get('id') ?? '');
+  const confirmName = String(formData.get('confirm_name') ?? '').trim();
+  if (!id) redirect('/portal/clients');
+
+  const supabase = await createSupabaseServer();
+  const { data: client } = await supabase
+    .from('clients')
+    .select('full_name, auth_user_id')
+    .eq('id', id)
+    .maybeSingle();
+
+  const row = client as { full_name: string | null; auth_user_id: string | null } | null;
+  if (!row) redirect('/portal/clients');
+
+  const expected = (row.full_name ?? '').trim();
+  if (!expected || confirmName.toLowerCase() !== expected.toLowerCase()) {
+    redirect(`/portal/clients/${id}?error=name`);
+  }
+
+  const admin = createSupabaseAdmin();
+
+  // Sweep stored files (path convention: <client_id>/<file>). No cascade here.
+  const { data: objects } = await admin.storage.from('client-files').list(id);
+  if (objects && objects.length > 0) {
+    await admin.storage.from('client-files').remove(objects.map((o) => `${id}/${o.name}`));
+  }
+
+  if (row.auth_user_id) {
+    await admin.auth.admin.deleteUser(row.auth_user_id); // cascades to clients + children
+  } else {
+    await admin.from('clients').delete().eq('id', id);
+  }
+
+  revalidatePath('/portal/clients');
+  redirect('/portal/clients?deleted=1');
+}
+
+// =============================================================================
+// CLIENT DOCUMENTS — staff upload / delete (private `client-files` bucket)
+// =============================================================================
+
+const MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
+
+/** Sanitise a filename for use inside a Storage object path. */
+function safeFilename(name: string): string {
+  return (name || 'file')
+    .replace(/[^\w.\- ]+/g, '_')
+    .replace(/\s+/g, '_')
+    .slice(-120);
+}
+
+/** Upload a file and share it with a client (staff only). */
+export async function uploadClientDocument(formData: FormData) {
+  const { staff } = await requireStaff();
+  const clientId = String(formData.get('client_id') ?? '');
+  const title = String(formData.get('title') ?? '').trim().slice(0, 200);
+  const description = String(formData.get('description') ?? '').trim().slice(0, 1000);
+  const file = formData.get('file');
+
+  if (!clientId || !(file instanceof File) || file.size === 0) {
+    redirect(`/portal/clients/${clientId}?file_error=missing`);
+  }
+  if (file.size > MAX_FILE_BYTES) {
+    redirect(`/portal/clients/${clientId}?file_error=size`);
+  }
+
+  const path = `${clientId}/${crypto.randomUUID()}-${safeFilename(file.name)}`;
+  const supabase = await createSupabaseServer();
+
+  const { error: upErr } = await supabase.storage
+    .from('client-files')
+    .upload(path, file, { contentType: file.type || undefined, upsert: false });
+  if (upErr) {
+    redirect(`/portal/clients/${clientId}?file_error=upload`);
+  }
+
+  await supabase.from('documents').insert({
+    client_id: clientId,
+    uploaded_by_staff_id: staff.id,
+    title: title || file.name,
+    description: description || null,
+    storage_path: path,
+    file_type: file.type || null,
+  } as never);
+
+  revalidatePath(`/portal/clients/${clientId}`);
+  redirect(`/portal/clients/${clientId}?file=1`);
+}
+
+/** Remove a shared document (storage object + row). */
+export async function deleteClientDocument(formData: FormData) {
+  await requireStaff();
+  const documentId = String(formData.get('document_id') ?? '');
+  const clientId = String(formData.get('client_id') ?? '');
+  if (!documentId) return;
+
+  const supabase = await createSupabaseServer();
+  const { data: doc } = await supabase
+    .from('documents')
+    .select('storage_path')
+    .eq('id', documentId)
+    .maybeSingle();
+
+  const storagePath = (doc as { storage_path: string } | null)?.storage_path;
+  if (storagePath) await supabase.storage.from('client-files').remove([storagePath]);
+  await supabase.from('documents').delete().eq('id', documentId);
+
+  revalidatePath(`/portal/clients/${clientId}`);
+}
+
 /** Save the signed-in coach's profile (display name, title, bio). */
 export async function updateStaffProfile(formData: FormData) {
   const { staff } = await requireStaff();

@@ -13,12 +13,13 @@ const TIER_LABEL: Record<string, string> = {
   friends_family: 'F&F',
 };
 
-export default async function ClientsPage({ searchParams }: { searchParams: Promise<{ q?: string; tier?: string }> }) {
+export default async function ClientsPage({ searchParams }: { searchParams: Promise<{ q?: string; tier?: string; view?: string }> }) {
   await requireStaff();
   const supabase = await createSupabaseServer();
-  const { q: qParam, tier } = await searchParams;
+  const { q: qParam, tier, view: viewParam } = await searchParams;
   const q = (qParam ?? '').trim().toLowerCase();
   const tierFilter = (tier ?? '').trim();
+  const view = ['active', 'archived', 'all'].includes(viewParam ?? '') ? viewParam! : 'active';
 
   const now = new Date().toISOString();
 
@@ -40,6 +41,9 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
   }
 
   let filtered = all;
+  if (view === 'active') filtered = filtered.filter((c) => !c.archived_at);
+  else if (view === 'archived') filtered = filtered.filter((c) => Boolean(c.archived_at));
+  const activeCount = all.filter((c) => !c.archived_at).length;
   if (q) {
     filtered = filtered.filter((c) =>
       (c.full_name ?? '').toLowerCase().includes(q) ||
@@ -59,7 +63,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
           <h1>Clients.</h1>
         </div>
         <div className="page-head-actions">
-          <span className="pill">{all.length} total</span>
+          <span className="pill">{activeCount} active</span>
         </div>
       </header>
 
@@ -75,6 +79,14 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
             <option value="standard">Standard</option>
             <option value="student_senior">Student / Senior</option>
             <option value="friends_family">F&amp;F</option>
+          </select>
+        </div>
+        <div className="p-field" style={{ width: 150 }}>
+          <label htmlFor="view">Status</label>
+          <select id="view" name="view" defaultValue={view}>
+            <option value="active">Active</option>
+            <option value="archived">Archived</option>
+            <option value="all">All</option>
           </select>
         </div>
         <button className="btn" type="submit">Filter</button>
@@ -107,6 +119,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
                     </div>
                   </div>
                   <div className="ri-actions">
+                    {c.archived_at && <span className="pill">Archived</span>}
                     <span className="pill">{TIER_LABEL[c.discount_tier] ?? c.discount_tier}</span>
                     <Icon.arrowR />
                   </div>

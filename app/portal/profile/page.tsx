@@ -2,7 +2,10 @@ import Link from 'next/link';
 import { format, parseISO } from 'date-fns';
 import { requireStaff } from '@/lib/auth/guards';
 import { updateStaffProfile, disconnectGoogleCalendar } from '@/lib/portal/actions';
+import { signOut } from '@/lib/auth/actions';
 import { googleConfigured } from '@/lib/google/oauth';
+import { getStaffNotifications } from '@/lib/notifications';
+import { NotificationsPanel } from '@/components/portal/notifications-panel';
 
 export const metadata = { title: 'Profile — MODE Lab' };
 
@@ -29,6 +32,7 @@ export default async function StaffProfilePage({
   const connectedAt = staff.google_calendar_connected_at;
   const flash = sp?.google ? GOOGLE_FLASH[sp.google] : undefined;
   const memberSince = staff.created_at ? format(parseISO(staff.created_at), 'MMM yyyy') : '—';
+  const { items: notifications } = await getStaffNotifications();
 
   return (
     <>
@@ -74,6 +78,8 @@ export default async function StaffProfilePage({
 
         {/* Side stack */}
         <div className="stack">
+          <NotificationsPanel items={notifications} />
+
           {/* Google Calendar */}
           <section className="surface">
             <div className="surface-head">
@@ -150,6 +156,18 @@ export default async function StaffProfilePage({
               <div className="kv-v">
                 <Link className="link-arrow" href="/portal/availability">Manage weekly blocks →</Link>
               </div>
+            </div>
+          </section>
+
+          {/* Sign out */}
+          <section className="surface">
+            <div className="surface-head">
+              <h2>Session</h2>
+            </div>
+            <div className="surface-body--pad">
+              <form action={signOut}>
+                <button className="btn btn--ghost btn--block" type="submit">Sign out</button>
+              </form>
             </div>
           </section>
         </div>

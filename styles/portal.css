@@ -181,6 +181,25 @@
 .rail-signout:hover { color: var(--lab-white); background: var(--engineered-black); border-color: var(--engineered-black); }
 .rail-signout svg { width: 15px; height: 15px; }
 
+/* Rail user block is now a link to Profile (sign-out moved into Profile). */
+.rail-user { text-decoration: none; color: inherit; border-radius: var(--radius); transition: background .2s var(--p-ease); }
+.rail-user:hover { background: var(--rail-hover); }
+
+/* ⌘K command palette relocated under the brand: constrain to the rail width. */
+.rail-top-slot { padding: 0 4px 6px; }
+.rail-top-slot .search-pill { width: 100%; max-width: none; flex: 0 0 auto; }
+.rail-top-slot .search-pill span:not(.kbd) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Notification dot on a nav icon (red). */
+.rail-icon { position: relative; display: inline-flex; flex-shrink: 0; }
+.rail-dot {
+  position: absolute; top: -3px; right: -3px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--danger);
+  box-shadow: 0 0 0 1.5px var(--rail);
+}
+.rail-item.active .rail-dot { box-shadow: 0 0 0 1.5px var(--engineered-black); }
+
 /* ---------- Mobile tab bar ---------- */
 .mobile-tabs {
   display: none;
@@ -203,6 +222,8 @@
 }
 .mobile-tab.active { color: var(--engineered-black); }
 .mobile-tab svg { width: 18px; height: 18px; }
+.mobile-tab-icon { position: relative; display: inline-flex; }
+.mobile-tab-icon .rail-dot { box-shadow: 0 0 0 1.5px var(--pure-white); }
 
 /* =========================================================================
    MAIN COLUMN

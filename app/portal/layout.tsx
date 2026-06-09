@@ -1,14 +1,15 @@
 import { Suspense } from 'react';
 import { AppFrame } from '@/components/portal/app-frame';
 import { Rail, type RailSection } from '@/components/portal/rail';
-import { StaffTopbar } from '@/components/portal/topbar';
+import { CommandPalette } from '@/components/portal/command-palette';
 import { MobileTabs, type MobileTab } from '@/components/portal/mobile-tabs';
 import { RouteToast } from '@/components/portal/route-toast';
 import { requireStaff } from '@/lib/auth/guards';
 import { createSupabaseServer } from '@/lib/supabase/server';
+import { getStaffNotifications } from '@/lib/notifications';
 import type { ClientRow } from '@/types/database';
 
-function buildSections(pendingCount: number): RailSection[] {
+function buildSections(notify: boolean, pendingCount: number): RailSection[] {
   return [
     {
       label: 'Workspace',
@@ -28,18 +29,21 @@ function buildSections(pendingCount: number): RailSection[] {
     {
       label: 'Account',
       items: [
-        { href: '/portal/profile',      label: 'Profile',      icon: 'user' },
+        { href: '/portal/profile',      label: 'Profile',      icon: 'user', dot: notify },
       ],
     },
   ];
 }
 
-const MOBILE_TABS: MobileTab[] = [
-  { href: '/portal',          label: 'Today',    icon: 'dashboard' },
-  { href: '/portal/schedule', label: 'Calendar', icon: 'calendar' },
-  { href: '/portal/requests', label: 'Requests', icon: 'bell' },
-  { href: '/portal/profile',  label: 'Profile',  icon: 'user' },
-];
+function buildMobileTabs(notify: boolean): MobileTab[] {
+  return [
+    { href: '/portal',          label: 'Today',    icon: 'dashboard' },
+    { href: '/portal/schedule', label: 'Calendar', icon: 'calendar' },
+    { href: '/portal/clients',  label: 'Clients',  icon: 'users' },
+    { href: '/portal/requests', label: 'Requests', icon: 'bell' },
+    { href: '/portal/profile',  label: 'Profile',  icon: 'user', dot: notify },
+  ];
+}
 
 function initialsFor(input: string | null | undefined, email: string) {
   const name = (input || '').trim();
@@ -55,11 +59,11 @@ export default async function PortalLayout({ children }: { children: React.React
   const email = user.email ?? '';
   const fullName = staff.display_name || email.split('@')[0] || 'Staff';
 
-  // Lightweight client list powering the ⌘K command palette, plus the count of
-  // pending time requests for the Requests nav badge.
+  // Lightweight active-client list powering the ⌘K command palette, plus the
+  // count of pending time requests for the Requests nav badge.
   const supabase = await createSupabaseServer();
   const [{ data: clientRows }, { count: pendingCount }] = await Promise.all([
-    supabase.from('clients').select('id,full_name,email').order('full_name'),
+    supabase.from('clients').select('id,full_name,email').is('archived_at', null).order('full_name'),
     supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
   ]);
   const paletteClients = ((clientRows ?? []) as Pick<ClientRow, 'id' | 'full_name' | 'email'>[]).map((c) => ({
@@ -68,12 +72,23 @@ export default async function PortalLayout({ children }: { children: React.React
     email: c.email,
   }));
 
+  const { count: notifyCount } = await getStaffNotifications();
+  const notify = notifyCount > 0;
+  const sections = buildSections(notify, pendingCount ?? 0);
+  const mobileTabs = buildMobileTabs(notify);
+
   return (
     <AppFrame
       portal="staff"
-      rail={<Rail portal="staff" sections={buildSections(pendingCount ?? 0)} user={{ initials: initialsFor(staff.display_name, email), fullName, email }} />}
-      topbar={<StaffTopbar clients={paletteClients} />}
-      mobileTabs={<MobileTabs tabs={MOBILE_TABS} />}
+      rail={
+        <Rail
+          portal="staff"
+          sections={sections}
+          user={{ initials: initialsFor(staff.display_name, email), fullName, email }}
+          topSlot={<CommandPalette clients={paletteClients} />}
+        />
+      }
+      mobileTabs={<MobileTabs tabs={mobileTabs} />}
     >
       {children}
       <Suspense fallback={null}>

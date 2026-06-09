@@ -2,6 +2,9 @@ import Link from 'next/link';
 import { format, parseISO } from 'date-fns';
 import { requireClient } from '@/lib/auth/guards';
 import { updateProfile } from '@/lib/account/actions';
+import { signOut } from '@/lib/auth/actions';
+import { getMemberNotifications } from '@/lib/notifications';
+import { NotificationsPanel } from '@/components/portal/notifications-panel';
 import { Icon } from '@/components/portal/icons';
 
 export const metadata = { title: 'Profile — MODE Lab' };
@@ -25,6 +28,7 @@ export default async function ProfilePage() {
 
   const memberSince = format(parseISO(client.created_at), 'MMM yyyy');
   const emergency = (client.emergency_contact ?? {}) as { name?: string; phone?: string };
+  const { items: notifications } = await getMemberNotifications(client.id);
 
   return (
     <>
@@ -70,6 +74,8 @@ export default async function ProfilePage() {
 
         {/* Side stack */}
         <div className="stack">
+          <NotificationsPanel items={notifications} />
+
           <section className="surface">
             <div className="surface-head">
               <h2>Google Calendar</h2>
@@ -143,6 +149,17 @@ export default async function ProfilePage() {
               <button className="btn btn--ghost btn--mini" style={{ marginTop: 14 }} type="button" disabled>
                 Pause
               </button>
+            </div>
+          </section>
+
+          <section className="surface">
+            <div className="surface-head">
+              <h2>Session</h2>
+            </div>
+            <div className="surface-body--pad">
+              <form action={signOut}>
+                <button className="btn btn--ghost btn--block" type="submit">Sign out</button>
+              </form>
             </div>
           </section>
         </div>

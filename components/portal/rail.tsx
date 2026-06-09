@@ -1,9 +1,9 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Icon, type IconKey } from './icons';
-import { signOut } from '@/lib/auth/actions';
 
 export type RailNavItem = {
   href: string;
@@ -11,6 +11,8 @@ export type RailNavItem = {
   icon: IconKey;
   badge?: number | string | null;
   badgeWarn?: boolean;
+  /** Show a small red notification dot on the icon. */
+  dot?: boolean;
   /** Exact path match. Otherwise a startsWith match against pathname is used (skipping the rail href itself). */
   matchExact?: boolean;
 };
@@ -24,10 +26,13 @@ export function Rail({
   portal,
   sections,
   user,
+  topSlot,
 }: {
   portal: 'staff' | 'member';
   sections: RailSection[];
   user: { initials: string; fullName: string; email: string };
+  /** Optional content rendered under the brand (e.g. the ⌘K command palette). */
+  topSlot?: ReactNode;
 }) {
   const pathname = usePathname();
   const isActive = (item: RailNavItem) => {
@@ -53,6 +58,8 @@ export function Rail({
         </div>
       </div>
 
+      {topSlot ? <div className="rail-top-slot">{topSlot}</div> : null}
+
       {sections.map((sec) => (
         <div key={sec.label}>
           <div className="rail-section-label">{sec.label}</div>
@@ -66,7 +73,10 @@ export function Rail({
                 className={`rail-item ${active ? 'active' : ''}`}
                 aria-current={active ? 'page' : undefined}
               >
-                <IconCmp />
+                <span className="rail-icon">
+                  <IconCmp />
+                  {it.dot && <span className="rail-dot" aria-label="Unread notifications" />}
+                </span>
                 <span>{it.label}</span>
                 {it.badge != null && (
                   <span className={`rail-badge ${it.badgeWarn ? 'rail-badge--warn' : ''}`}>{it.badge}</span>
@@ -79,20 +89,13 @@ export function Rail({
 
       <div className="rail-spacer" />
 
-      <div className="rail-user">
+      <Link className="rail-user" href={portal === 'staff' ? '/portal/profile' : '/account/profile'}>
         <div className="rail-avatar">{user.initials}</div>
         <div className="rail-user-text">
           <div className="n">{user.fullName}</div>
           <div className="e">{user.email}</div>
         </div>
-      </div>
-
-      <form action={signOut}>
-        <button className="rail-signout" type="submit">
-          <Icon.logout />
-          <span>Sign out</span>
-        </button>
-      </form>
+      </Link>
     </aside>
   );
 }

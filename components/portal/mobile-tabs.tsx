@@ -8,6 +8,8 @@ export type MobileTab = {
   href: string;
   label: string;
   icon: IconKey;
+  /** Show a small red notification dot on the icon. */
+  dot?: boolean;
 };
 
 /**
@@ -31,7 +33,10 @@ export function MobileTabs({ tabs }: { tabs: MobileTab[] }) {
         const active = isActive(t.href);
         return (
           <Link key={t.href} href={t.href} className={`mobile-tab ${active ? 'active' : ''}`} aria-current={active ? 'page' : undefined}>
-            <IconCmp />
+            <span className="mobile-tab-icon">
+              <IconCmp />
+              {t.dot && <span className="rail-dot" aria-label="Unread notifications" />}
+            </span>
             <span>{t.label}</span>
           </Link>
         );
