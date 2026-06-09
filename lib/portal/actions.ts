@@ -78,6 +78,34 @@ export async function createBooking(formData: FormData) {
   redirect('/portal/schedule?created=1');
 }
 
+/**
+ * Create a booking from the calendar quick-book popup. Same as `createBooking`
+ * but returns a result instead of redirecting, so the calendar can close its
+ * modal in place and refresh via revalidation rather than navigating away.
+ */
+export async function createBookingFromCalendar(
+  formData: FormData,
+): Promise<{ ok: true } | { error: string }> {
+  const { staff } = await requireStaff();
+  const row = await buildBookingRow(formData);
+  if (!row) return { error: 'Pick a client, service, location and start time.' };
+
+  const supabase = await createSupabaseServer();
+  const { data: created, error } = await supabase
+    .from('bookings')
+    .insert({ ...row, staff_id: staff.id, status: 'confirmed' } as never)
+    .select('id')
+    .single();
+  if (error) return { error: 'Could not create that booking.' };
+
+  const bookingId = (created as { id: string } | null)?.id;
+  if (bookingId) await syncBookingToCalendar(bookingId);
+
+  revalidatePath('/portal/schedule');
+  revalidatePath('/portal');
+  return { ok: true };
+}
+
 // AUTHORIZATION MODEL (multi-coach) — DECISION, 2026-06.
 // `updateBooking` / `cancelBooking` let ANY active staff member edit or cancel
 // ANY coach's booking, and the clients list is shared. The studio is a single
@@ -231,6 +259,50 @@ export async function updateAvailability(formData: FormData) {
   revalidatePath('/portal/availability');
 }
 
+// =============================================================================
+// CALENDAR BLOCKS — one-off blocked-out time (lunch, admin, leave, …)
+// =============================================================================
+
+/** Block out a one-off time range on the signed-in coach's calendar. */
+export async function createBlock(
+  formData: FormData,
+): Promise<{ ok: true } | { error: string }> {
+  const { staff } = await requireStaff();
+  const startsLocal = String(formData.get('starts_at') ?? '');
+  const endsLocal = String(formData.get('ends_at') ?? '');
+  const reason = String(formData.get('reason') ?? '').trim().slice(0, 200);
+
+  if (!startsLocal || !endsLocal) return { error: 'Pick a start and end time.' };
+  const start = new Date(startsLocal); // datetime-local → server tz
+  const end = new Date(endsLocal);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return { error: 'That start or end time is invalid.' };
+  }
+  if (end <= start) return { error: 'End must be after start.' };
+
+  const supabase = await createSupabaseServer();
+  const { error } = await supabase.from('staff_blocks').insert({
+    staff_id: staff.id,
+    starts_at: start.toISOString(),
+    ends_at: end.toISOString(),
+    reason: reason || null,
+  } as never);
+  if (error) return { error: 'Could not block that time.' };
+
+  revalidatePath('/portal/schedule');
+  return { ok: true };
+}
+
+/** Remove a one-off block. */
+export async function deleteBlock(formData: FormData) {
+  await requireStaff();
+  const id = String(formData.get('id') ?? '');
+  if (!id) return;
+  const supabase = await createSupabaseServer();
+  await supabase.from('staff_blocks').delete().eq('id', id);
+  revalidatePath('/portal/schedule');
+}
+
 /** Staff-initiated cancellation (no client penalty). */
 export async function cancelBooking(id: string) {
   await requireStaff();
@@ -248,6 +320,52 @@ export async function cancelBooking(id: string) {
 // =============================================================================
 // CLIENT LIFECYCLE — archive / reactivate / hard delete
 // =============================================================================
+
+const DISCOUNT_TIERS = new Set(['standard', 'student_senior', 'friends_family']);
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Create a client RECORD (no portal login). Staff add walk-ins / pay-in-studio
+ * members here so they're bookable immediately; a portal invite can be sent
+ * later. `auth_user_id` stays null until/unless they sign up themselves.
+ */
+export async function createClient(formData: FormData) {
+  await requireStaff();
+  const email = String(formData.get('email') ?? '').trim().toLowerCase();
+  const full_name = String(formData.get('full_name') ?? '').trim();
+  const phone = String(formData.get('phone') ?? '').trim();
+  const date_of_birth = String(formData.get('date_of_birth') ?? '').trim();
+  const health_notes = String(formData.get('health_notes') ?? '').trim();
+  const tierRaw = String(formData.get('discount_tier') ?? 'standard');
+  const discount_tier = DISCOUNT_TIERS.has(tierRaw) ? tierRaw : 'standard';
+  const marketing_consent = formData.get('marketing_consent') === 'on';
+
+  if (!email || !EMAIL_RE.test(email)) redirect('/portal/clients/new?error=email');
+
+  const supabase = await createSupabaseServer();
+  const { data, error } = await supabase
+    .from('clients')
+    .insert({
+      email,
+      full_name: full_name || null,
+      phone: phone || null,
+      date_of_birth: date_of_birth || null,
+      health_notes: health_notes || null,
+      discount_tier,
+      marketing_consent,
+    } as never)
+    .select('id')
+    .single();
+
+  if (error) {
+    // 23505 = unique_violation (email already on file).
+    redirect(`/portal/clients/new?error=${error.code === '23505' ? 'dupe' : '1'}`);
+  }
+
+  const id = (data as { id: string } | null)?.id;
+  revalidatePath('/portal/clients');
+  redirect(id ? `/portal/clients/${id}?created=1` : '/portal/clients');
+}
 
 /** Archive a client: keep their data but drop them from active lists + portal. */
 export async function archiveClient(formData: FormData) {

@@ -1153,44 +1153,30 @@
   color: var(--danger); white-space: nowrap;
 }
 
-/* ── Scroll drum (time picker) ────────────────────────────────────────── */
-.app .time-scroll-picker { display: flex; align-items: center; gap: 2px; }
-.app .time-scroll-sep {
-  font-family: var(--font-mono); font-size: 13px; font-weight: 600;
-  color: var(--slate-soft); line-height: 1; margin: 0 1px; margin-top: 2px;
+/* ── Time stepper (− value + ) ────────────────────────────────────────── */
+.app .time-stepper {
+  display: inline-flex; align-items: stretch; user-select: none;
+  border: 1px solid var(--line-strong); border-radius: var(--radius);
+  overflow: hidden; background: var(--pure-white);
 }
-
-.app .time-drum {
-  display: flex; flex-direction: column; align-items: center;
-  cursor: ns-resize; user-select: none;
-  width: 26px; outline: none;
+.app .time-stepper-btn {
+  appearance: none; border: none; background: var(--surface-tint);
+  color: var(--engineered-black); cursor: pointer;
+  width: 28px; font-size: 17px; line-height: 1; font-weight: 600;
+  display: grid; place-items: center;
+  touch-action: none; /* keep press-and-hold from scrolling on touch */
+  transition: background .12s var(--p-ease), color .12s var(--p-ease);
 }
-.app .time-drum:focus-visible .time-drum-val {
-  box-shadow: 0 0 0 2px rgba(14,15,17,0.18);
+.app .time-stepper-btn:hover { background: var(--engineered-black); color: var(--pure-white); }
+.app .time-stepper-btn:active { background: var(--engineered-black); color: var(--pure-white); }
+.app .time-stepper-btn:focus-visible { outline: 2px solid var(--engineered-black); outline-offset: -2px; }
+.app .time-stepper-val {
+  font-family: var(--font-mono); font-size: 14px; font-weight: 600;
+  color: var(--engineered-black); letter-spacing: 0.02em;
+  min-width: 52px; padding: 6px 4px; text-align: center;
+  display: grid; place-items: center;
+  border-left: 1px solid var(--line); border-right: 1px solid var(--line);
 }
-
-/* The selected value — sits between two hairlines */
-.app .time-drum-val {
-  font-family: var(--font-mono); font-size: 15px; font-weight: 600;
-  color: var(--engineered-black); line-height: 1;
-  padding: 4px 1px; width: 100%; text-align: center;
-  border-top: 1px solid var(--line-strong);
-  border-bottom: 1px solid var(--line-strong);
-  letter-spacing: 0.02em;
-  transition: border-color .15s var(--p-ease);
-}
-.app .time-drum:hover .time-drum-val { border-color: var(--engineered-black); }
-
-/* Ghost values above and below — clickable to step */
-.app .time-drum-ghost {
-  font-family: var(--font-mono); font-size: 10.5px;
-  color: var(--slate-faint); line-height: 1;
-  padding: 3px 1px; width: 100%; text-align: center;
-  background: none; border: none; cursor: pointer;
-  letter-spacing: 0.02em; min-height: 18px;
-  transition: color .1s var(--p-ease);
-}
-.app .time-drum-ghost:hover { color: var(--slate); }
 
 @media (max-width: 680px) {
   .app .avail-live-row { grid-template-columns: auto 1fr; gap: 10px; padding: 10px 16px; }
@@ -1615,6 +1601,57 @@
     rgba(14, 15, 17, 0.06) 6px, rgba(14, 15, 17, 0.06) 12px);
   pointer-events: none;
 }
+
+/* Clickable empty cells — quick book / block on click */
+.app .hour-cell--book { cursor: pointer; }
+
+/* One-off blocked-out time overlay */
+.app .cal-block {
+  position: absolute; left: 4px; right: 4px;
+  border-radius: var(--radius);
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(178, 58, 58, 0.10) 0, rgba(178, 58, 58, 0.10) 7px,
+    rgba(178, 58, 58, 0.18) 7px, rgba(178, 58, 58, 0.18) 14px);
+  border: 1px solid rgba(178, 58, 58, 0.35);
+  z-index: 2; overflow: hidden;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 2px;
+  padding: 3px 5px;
+}
+.app .cal-block-label {
+  font-family: var(--font-mono); font-size: 10px; line-height: 1.25;
+  color: var(--danger); letter-spacing: 0.01em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.app .cal-block-del button {
+  appearance: none; border: none; background: none; cursor: pointer;
+  color: var(--danger); opacity: 0.55; padding: 0; line-height: 0;
+  display: grid; place-items: center;
+}
+.app .cal-block-del button:hover { opacity: 1; }
+.app .cal-block-del svg { width: 13px; height: 13px; }
+
+/* Slot popup tabs (book / block) */
+.app .slot-tabs {
+  display: flex; gap: 4px; margin-bottom: 18px;
+  background: var(--surface-tint); padding: 3px; border-radius: var(--radius);
+}
+.app .slot-tab {
+  flex: 1; appearance: none; border: none; background: none; cursor: pointer;
+  padding: 7px 10px; border-radius: var(--radius);
+  font-size: 12.5px; font-weight: 500; color: var(--slate);
+  transition: background .12s var(--p-ease), color .12s var(--p-ease);
+}
+.app .slot-tab.is-active { background: var(--pure-white); color: var(--engineered-black); box-shadow: 0 1px 3px rgba(14,15,17,0.10); }
+.app .slot-form { max-width: none; background: none; border: none; padding: 0; gap: 16px; }
+.app .slot-hint { font-size: 12px; color: var(--slate); margin-top: 8px; }
+
+/* Inline checkbox row (forms) */
+.app .p-checkbox {
+  display: flex; align-items: center; gap: 9px; cursor: pointer;
+  font-size: 13px; color: var(--slate);
+}
+.app .p-checkbox input { width: 15px; height: 15px; accent-color: var(--engineered-black); cursor: pointer; }
 
 /* Attendance dot on calendar event blocks */
 .app .event-att-dot {

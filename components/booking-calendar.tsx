@@ -12,6 +12,8 @@ import {
   parseISO,
 } from 'date-fns';
 import { Icon } from '@/components/portal/icons';
+import { SlotModal, type SlotOption } from '@/components/portal/slot-modal';
+import { deleteBlock } from '@/lib/portal/actions';
 
 export type CalBooking = {
   id: string;
@@ -22,6 +24,13 @@ export type CalBooking = {
   locationName: string;
   status: string;
   notes?: string | null;
+};
+
+export type CalBlock = {
+  id: string;
+  startsAt: string;
+  endsAt: string;
+  reason: string | null;
 };
 
 /** Merged open availability intervals (decimal hours) per weekday (0=Sun). */
@@ -61,15 +70,27 @@ const keyOf = (d: Date) => format(d, 'yyyy-MM-dd');
 export function BookingCalendar({
   bookings,
   working = {},
+  blocks = [],
+  clients = [],
+  services = [],
+  locations = [],
+  serviceDurations = {},
 }: {
   bookings: CalBooking[];
   working?: WorkingMap;
+  blocks?: CalBlock[];
+  clients?: SlotOption[];
+  services?: SlotOption[];
+  locations?: SlotOption[];
+  serviceDurations?: Record<string, number>;
 }) {
   const [anchor, setAnchor] = useState<Date>(() => new Date());
   const [miniMonth, setMiniMonth] = useState<Date>(() => startOfMonth(new Date()));
   // Local, non-persistent day-of attendance overrides keyed by booking id.
   const [attendance, setAttendance] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<string | null>(null);
+  // The slot the quick-book / block popup is open for (null = closed).
+  const [slotStart, setSlotStart] = useState<Date | null>(null);
   const now = new Date();
 
   const weekStart = useMemo(() => startOfWeek(anchor, { weekStartsOn: 1 }), [anchor]);
@@ -86,6 +107,15 @@ export function BookingCalendar({
     for (const list of m.values()) list.sort((a, b) => a.startsAt.localeCompare(b.startsAt));
     return m;
   }, [bookings]);
+
+  const blocksByDay = useMemo(() => {
+    const m = new Map<string, CalBlock[]>();
+    for (const bl of blocks) {
+      const k = keyOf(parseISO(bl.startsAt));
+      (m.get(k) ?? m.set(k, []).get(k)!).push(bl);
+    }
+    return m;
+  }, [blocks]);
 
   useEffect(() => {
     if (!toast) return;
@@ -106,6 +136,15 @@ export function BookingCalendar({
     const startH = start.getHours() + start.getMinutes() / 60;
     const durH = Math.max(0.25, (end.getTime() - start.getTime()) / 3_600_000);
     return { top: `${(startH - START_HOUR) * PX_PER_HOUR}px`, height: `${Math.max(28, durH * PX_PER_HOUR - 2)}px` };
+  };
+
+  const blockStyle = (bl: CalBlock) => {
+    const start = parseISO(bl.startsAt);
+    const end = parseISO(bl.endsAt);
+    const startH = Math.max(START_HOUR, start.getHours() + start.getMinutes() / 60);
+    const endH = Math.min(END_HOUR, end.getHours() + end.getMinutes() / 60 + (end.getHours() === 0 && end.getMinutes() === 0 ? 24 : 0));
+    const dur = Math.max(0.25, endH - startH);
+    return { top: `${(startH - START_HOUR) * PX_PER_HOUR}px`, height: `${Math.max(22, dur * PX_PER_HOUR - 2)}px` };
   };
 
   // Non-working ranges (complement of open availability) within the visible window.
@@ -208,7 +247,18 @@ export function BookingCalendar({
                   }}
                 >
                   {HOURS.map((h) => (
-                    <div key={h} className="hour-cell" />
+                    <div
+                      key={h}
+                      className="hour-cell hour-cell--book"
+                      title="Book or block this time"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAnchor(d);
+                        const slot = new Date(d);
+                        slot.setHours(h, 0, 0, 0);
+                        setSlotStart(slot);
+                      }}
+                    />
                   ))}
                   {nw.map((r, i) => (
                     <div
@@ -216,6 +266,19 @@ export function BookingCalendar({
                       className="non-working"
                       style={{ top: `${(r.start - START_HOUR) * PX_PER_HOUR}px`, height: `${(r.end - r.start) * PX_PER_HOUR}px` }}
                     />
+                  ))}
+                  {(blocksByDay.get(keyOf(d)) ?? []).map((bl) => (
+                    <div key={bl.id} className="cal-block" style={blockStyle(bl)}>
+                      <span className="cal-block-label">
+                        {format(parseISO(bl.startsAt), 'HH:mm')} {bl.reason || 'Blocked'}
+                      </span>
+                      <form action={deleteBlock} className="cal-block-del">
+                        <input type="hidden" name="id" value={bl.id} />
+                        <button type="submit" aria-label="Remove block" onClick={(e) => e.stopPropagation()}>
+                          <Icon.close />
+                        </button>
+                      </form>
+                    </div>
                   ))}
                   {dayB.map((b) => {
                     const att = attMeta(attOf(b));
@@ -317,6 +380,18 @@ export function BookingCalendar({
           </div>
         </section>
       </div>
+
+      {slotStart && (
+        <SlotModal
+          start={slotStart}
+          clients={clients}
+          services={services}
+          locations={locations}
+          serviceDurations={serviceDurations}
+          onClose={() => setSlotStart(null)}
+          onDone={(msg) => { setSlotStart(null); setToast(msg); }}
+        />
+      )}
 
       {toast && (
         <div className="toast-stack">

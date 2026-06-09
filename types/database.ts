@@ -35,6 +35,42 @@ export type Database = Generated & {
         };
         Relationships: Generated['public']['Tables']['clients']['Relationships'];
       };
+      // One-off calendar blocks added in 20260609140000_staff_blocks.sql.
+      staff_blocks: {
+        Row: {
+          id: string;
+          staff_id: string;
+          starts_at: string;
+          ends_at: string;
+          reason: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          staff_id: string;
+          starts_at: string;
+          ends_at: string;
+          reason?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          staff_id?: string;
+          starts_at?: string;
+          ends_at?: string;
+          reason?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'staff_blocks_staff_id_fkey';
+            columns: ['staff_id'];
+            isOneToOne: false;
+            referencedRelation: 'staff';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       staff_google_credentials: {
         Row: {
           staff_id: string;
@@ -82,6 +118,7 @@ export type AssessmentRow = Tables['assessments']['Row'];
 export type DocumentRow = Tables['documents']['Row'];
 export type ArticleRow = Tables['articles']['Row'];
 export type StaffAvailabilityRow = Tables['staff_availability']['Row'];
+export type StaffBlockRow = Tables['staff_blocks']['Row'];
 export type ClientAssignmentRow = Tables['client_assignments']['Row'];
 export type LeadRow = Tables['leads']['Row'];
 export type ClientScreeningRow = Tables['client_screenings']['Row'];

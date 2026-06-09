@@ -3,6 +3,7 @@ import { requireStaff } from '@/lib/auth/guards';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { addAvailability } from '@/lib/portal/actions';
 import { AvailBlock } from '@/components/portal/avail-block';
+import { TimeStepperField } from '@/components/portal/time-stepper';
 import type { StaffAvailabilityRow } from '@/types/database';
 
 export const metadata = { title: 'Availability — MODE Lab' };
@@ -90,12 +91,12 @@ export default async function AvailabilityPage() {
 
           <div className="p-form-row-2">
             <div className="p-field">
-              <label htmlFor="avail-start">From</label>
-              <input id="avail-start" name="start_time" type="time" defaultValue="06:00" required />
+              <label>From</label>
+              <TimeStepperField name="start_time" defaultValue="06:00" label="Start time" />
             </div>
             <div className="p-field">
-              <label htmlFor="avail-end">To</label>
-              <input id="avail-end" name="end_time" type="time" defaultValue="12:00" required />
+              <label>To</label>
+              <TimeStepperField name="end_time" defaultValue="12:00" label="End time" />
             </div>
           </div>
 
