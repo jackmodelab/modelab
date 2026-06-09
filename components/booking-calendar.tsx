@@ -207,6 +207,7 @@ export function BookingCalendar({
           </div>
         </div>
 
+        <div className="week-scroll">
         <div className="week">
           <div className="week-header">
             <div className="week-corner" />
@@ -305,6 +306,7 @@ export function BookingCalendar({
           </div>
 
           {nowLineTop != null && <div className="now-line" style={{ top: `${nowLineTop}px` }} />}
+        </div>
         </div>
       </div>
 

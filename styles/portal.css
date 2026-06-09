@@ -897,6 +897,9 @@
 }
 .app .cal-nav button:hover { background: var(--engineered-black); color: var(--lab-white); }
 .app .cal-nav .today-btn { width: auto; padding: 0 12px; font-size: 12px; font-weight: 500; }
+/* Horizontal-scroll wrapper so the week grid stays usable on narrow screens
+   (the toolbar above stays put; only the grid scrolls sideways). */
+.app .week-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .app .week {
   display: grid;
   grid-template-columns: 56px repeat(7, 1fr);
@@ -1603,7 +1606,11 @@
 
 /* Clickable empty cells — quick book / block on click */
 .app .hour-cell--book { cursor: pointer; transition: background .12s var(--p-ease); }
-.app .hour-cell--book:hover { background: rgba(14, 15, 17, 0.06); }
+/* Hover only on pointer devices so the tint doesn't stick after a tap on touch */
+@media (hover: hover) {
+  .app .hour-cell--book:hover { background: rgba(14, 15, 17, 0.06); }
+}
+.app .hour-cell--book:active { background: rgba(14, 15, 17, 0.09); }
 
 /* One-off blocked-out time overlay */
 .app .cal-block {
@@ -1652,6 +1659,20 @@
   font-size: 13px; color: var(--slate);
 }
 .app .p-checkbox input { width: 15px; height: 15px; accent-color: var(--engineered-black); cursor: pointer; }
+
+/* ── Calendar + steppers on small screens ─────────────────────────────── */
+@media (max-width: 640px) {
+  /* Keep day columns wide enough to read/tap; the grid scrolls sideways. */
+  .app .week { min-width: 580px; }
+  .app .cal-toolbar { padding: 12px 14px; }
+  /* Bigger touch targets for the − / + time steppers. */
+  .app .time-stepper-btn { width: 40px; font-size: 20px; }
+  .app .time-stepper-val { min-width: 58px; padding: 9px 6px; font-size: 15px; }
+  .app .avail-live-times { flex-wrap: wrap; }
+  /* Roomier tap area for removing a calendar block. */
+  .app .cal-block-del button { padding: 2px; }
+  .app .cal-block-del svg { width: 15px; height: 15px; }
+}
 
 /* Attendance dot on calendar event blocks */
 .app .event-att-dot {
