@@ -1603,7 +1603,7 @@
 
 /* Clickable empty cells — quick book / block on click */
 .app .hour-cell--book { cursor: pointer; transition: background .12s var(--p-ease); }
-.app .hour-cell--book:hover { background: var(--lab-white); }
+.app .hour-cell--book:hover { background: rgba(14, 15, 17, 0.06); }
 
 /* One-off blocked-out time overlay */
 .app .cal-block {
