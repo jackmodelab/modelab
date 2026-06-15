@@ -6,43 +6,20 @@ import { requireClient } from '@/lib/auth/guards';
 import { createSupabaseAdmin, createSupabaseServer } from '@/lib/supabase/server';
 import { hasCompletedScreening } from '@/lib/screening/queries';
 import { removeBookingFromCalendar, syncBookingToCalendar } from '@/lib/google/booking-sync';
-
-/** Minutes since midnight for a 'HH:MM' / 'HH:MM:SS' time string. */
-function timeToMinutes(time: string): number {
-  const [h, m] = time.split(':').map(Number);
-  return h * 60 + (m || 0);
-}
-
-/**
- * Changeover buffer (minutes) reserved after a session before the next slot can
- * open. Mirrors `bufferFor` in the booking UI: the 30- and 45-minute training
- * sessions carry a 15-minute buffer; other services get none.
- */
-function bufferFor(durationMinutes: number): number {
-  return durationMinutes === 30 || durationMinutes === 45 ? 15 : 0;
-}
+import {
+  DEFAULT_DURATION_MINUTES,
+  bufferFor,
+  clinicWeekdayMinute,
+  timeToMinutes,
+} from '@/lib/booking/time';
 
 /**
- * Weekday (0=Sun..6=Sat) and minute-of-day for an instant, evaluated in the
- * clinic's timezone. Availability is stored as clinic wall-clock time, so we
- * must compare against the same zone — not the server's (UTC on Vercel).
+ * Statuses that actually occupy a coach's calendar. Used for the double-booking
+ * overlap check (ARC-2): a slot is "taken" only by a confirmed/completed
+ * session, not by a cancelled/no-show/rescheduled one, nor by another member's
+ * still-pending (off-grid) request.
  */
-function clinicWeekdayMinute(date: Date): { weekday: number; minute: number } {
-  const parts = Object.fromEntries(
-    new Intl.DateTimeFormat('en-US', {
-      timeZone: 'Australia/Sydney',
-      weekday: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    })
-      .formatToParts(date)
-      .map((p) => [p.type, p.value]),
-  ) as Record<string, string>;
-  const weekdays: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
-  const hour = Number(parts.hour) % 24; // some runtimes emit '24' at midnight
-  return { weekday: weekdays[parts.weekday] ?? -1, minute: hour * 60 + Number(parts.minute) };
-}
+const OCCUPYING_STATUSES = ['confirmed', 'completed'] as const;
 
 /**
  * Member-initiated booking cancellation.
@@ -130,7 +107,7 @@ export async function requestBooking(formData: FormData) {
     redirect('/account/book?error=invalid');
   }
 
-  const duration = service.duration_minutes ?? 45;
+  const duration = service.duration_minutes ?? DEFAULT_DURATION_MINUTES;
   const end = new Date(start.getTime() + duration * 60000);
 
   // Standard requests are auto-confirmed, so they must land on a real bookable
@@ -152,6 +129,23 @@ export async function requestBooking(formData: FormData) {
     );
   if (!fitsAvailability) {
     redirect('/account/book?error=unavailable');
+  }
+
+  // Double-booking guard (ARC-2): refuse if the coach already has a
+  // confirmed/completed session overlapping [start, end). Two members hitting
+  // the same open slot would otherwise both auto-confirm. A DB exclusion
+  // constraint backs this up (20260615130000_booking_overlap_guard.sql); the
+  // app check turns the race into a friendly redirect instead of a 500.
+  const { data: clash } = await admin
+    .from('bookings')
+    .select('id')
+    .eq('staff_id', coachId)
+    .in('status', [...OCCUPYING_STATUSES])
+    .lt('starts_at', end.toISOString())
+    .gt('ends_at', start.toISOString())
+    .limit(1);
+  if (clash && clash.length > 0) {
+    redirect('/account/book?error=taken');
   }
 
   const { data: created } = await admin
@@ -219,7 +213,7 @@ export async function requestCustomBooking(formData: FormData) {
     redirect('/account/book?error=invalid');
   }
 
-  const duration = service.duration_minutes ?? 45;
+  const duration = service.duration_minutes ?? DEFAULT_DURATION_MINUTES;
   const end = new Date(start.getTime() + duration * 60000);
 
   await admin.from('bookings').insert({

@@ -34,3 +34,17 @@ const BOOKING_LABELS: Record<string, string> = {
 export function bookingStatusLabel(status: string): string {
   return BOOKING_LABELS[status] ?? status;
 }
+
+/**
+ * Two-letter avatar initials from a display name, falling back to the first
+ * letter of the email when there's no name (ARC-4: shared by both portal
+ * layouts).
+ */
+export function initials(input: string | null | undefined, email: string): string {
+  const name = (input || '').trim();
+  if (name) {
+    const parts = name.split(/\s+/);
+    return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || name[0]!.toUpperCase();
+  }
+  return (email[0] ?? '?').toUpperCase();
+}

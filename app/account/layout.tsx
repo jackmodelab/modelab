@@ -6,6 +6,7 @@ import { SignOutButton } from '@/components/sign-out-button';
 import { requireClient } from '@/lib/auth/guards';
 import { hasCompletedScreening } from '@/lib/screening/queries';
 import { getMemberNotifications } from '@/lib/notifications';
+import { initials } from '@/lib/format';
 
 function buildSections(notify: boolean): RailSection[] {
   return [
@@ -39,15 +40,6 @@ function buildMobileTabs(notify: boolean): MobileTab[] {
     { href: '/account/packages', label: 'Packs',    icon: 'packageIcon' },
     { href: '/account/profile',  label: 'Profile',  icon: 'user', dot: notify },
   ];
-}
-
-function initials(input: string | null | undefined, email: string) {
-  const name = (input || '').trim();
-  if (name) {
-    const parts = name.split(/\s+/);
-    return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || name[0]!.toUpperCase();
-  }
-  return (email[0] ?? '?').toUpperCase();
 }
 
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {

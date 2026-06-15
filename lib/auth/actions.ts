@@ -34,7 +34,9 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
 
   const supabase = await createSupabaseServer();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { error: error.message };
+  // Single generic message — never reveal whether it was the email or the
+  // password that was wrong (user-enumeration defence, SEC-4).
+  if (error) return { error: 'Invalid email or password.' };
 
   // Decide destination: explicit ?next wins, else route by role.
   // Reject protocol-relative (`//evil.com`) and backslash (`/\evil.com`) values that

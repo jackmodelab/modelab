@@ -7,6 +7,7 @@ import { RouteToast } from '@/components/portal/route-toast';
 import { requireStaff } from '@/lib/auth/guards';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { getStaffNotifications } from '@/lib/notifications';
+import { initials } from '@/lib/format';
 import type { ClientRow } from '@/types/database';
 
 function buildSections(notify: boolean, pendingCount: number): RailSection[] {
@@ -45,15 +46,6 @@ function buildMobileTabs(notify: boolean): MobileTab[] {
   ];
 }
 
-function initialsFor(input: string | null | undefined, email: string) {
-  const name = (input || '').trim();
-  if (name) {
-    const parts = name.split(/\s+/);
-    return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || name[0]!.toUpperCase();
-  }
-  return (email[0] ?? '?').toUpperCase();
-}
-
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const { user, staff } = await requireStaff();
   const email = user.email ?? '';
@@ -84,7 +76,7 @@ export default async function PortalLayout({ children }: { children: React.React
         <Rail
           portal="staff"
           sections={sections}
-          user={{ initials: initialsFor(staff.display_name, email), fullName, email }}
+          user={{ initials: initials(staff.display_name, email), fullName, email }}
           topSlot={<CommandPalette clients={paletteClients} />}
         />
       }

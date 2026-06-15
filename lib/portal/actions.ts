@@ -9,6 +9,11 @@ import {
   syncBookingToCalendar,
   upsertBookingCalendar,
 } from '@/lib/google/booking-sync';
+import { DEFAULT_DURATION_MINUTES } from '@/lib/booking/time';
+
+// Postgres error code raised when the `bookings_no_overlap_per_staff` exclusion
+// constraint rejects a double-booking (ARC-2 backstop).
+const EXCLUSION_VIOLATION = '23P01';
 
 // Statuses where the session is off the calendar (event should be removed).
 const CANCELLED_STATUSES = new Set([
@@ -45,7 +50,8 @@ async function buildBookingRow(formData: FormData) {
     .select('duration_minutes')
     .eq('id', service_id)
     .maybeSingle();
-  const duration = (service as { duration_minutes: number } | null)?.duration_minutes ?? 45;
+  const duration =
+    (service as { duration_minutes: number } | null)?.duration_minutes ?? DEFAULT_DURATION_MINUTES;
   const end = new Date(start.getTime() + duration * 60000);
 
   return {
@@ -96,7 +102,14 @@ export async function createBookingFromCalendar(
     .insert({ ...row, staff_id: staff.id, status: 'confirmed' } as never)
     .select('id')
     .single();
-  if (error) return { error: 'Could not create that booking.' };
+  if (error) {
+    return {
+      error:
+        error.code === EXCLUSION_VIOLATION
+          ? 'That time overlaps an existing booking.'
+          : 'Could not create that booking.',
+    };
+  }
 
   const bookingId = (created as { id: string } | null)?.id;
   if (bookingId) await syncBookingToCalendar(bookingId);
@@ -106,16 +119,18 @@ export async function createBookingFromCalendar(
   return { ok: true };
 }
 
-// AUTHORIZATION MODEL (multi-coach) — DECISION, 2026-06.
-// `updateBooking` / `cancelBooking` let ANY active staff member edit or cancel
-// ANY coach's booking, and the clients list is shared. The studio is a single
-// operator (Jack) at launch, so this is the handoff's "fine for a single trusted
-// operator" case — no scoping needed.
+// MULTI-COACH: AUTHORIZATION MODEL — DECISION, 2026-06. (ARC-1 launch-blocker
+// for "Como / second coach"; grep `MULTI-COACH:` for every site.)
+// The booking write paths below act on a booking by `id` with no ownership
+// check, so ANY active staff member can edit/cancel/accept/decline ANY coach's
+// booking; the availability/block edits act by `id` the same way; the clients
+// list is shared. The studio is a single operator (Jack) at launch, so this is
+// the handoff's "fine for a single trusted operator" case — no scoping needed.
 // When a second coach is added and they should be siloed, scope writes to the
-// owning coach: load the booking's `staff_id`, compare to the signed-in
-// `staff.id`, and reject the mismatch (or allow only via a `client_assignments`
-// link). Calendar sync already targets the booking's own coach, so scoping is a
-// guard, not a rewrite.
+// owning coach: load the row's `staff_id`, compare to the signed-in `staff.id`,
+// and reject the mismatch (or allow only via a `client_assignments` link).
+// Calendar sync already targets the booking's own coach, so scoping is a guard,
+// not a rewrite.
 /** Edit an existing booking (reschedule, change service/location/status). */
 export async function updateBooking(formData: FormData) {
   await requireStaff();
@@ -151,13 +166,16 @@ export async function updateBooking(formData: FormData) {
  * add it to the coach's Google Calendar (the event isn't created until now).
  */
 export async function acceptBookingRequest(formData: FormData) {
-  await requireStaff();
+  await requireStaff(); // MULTI-COACH: scope to the request's owning coach
   const id = String(formData.get('id') ?? '');
   if (!id) return;
 
   const supabase = await createSupabaseServer();
   // Only a still-pending request can be accepted (guards against double-action).
-  const { data: updated } = await supabase
+  // The overlap constraint (ARC-2) can reject this if the requested time now
+  // clashes with a confirmed session — swallow that so it leaves the request
+  // pending rather than 500ing; the coach can reschedule or decline it.
+  const { data: updated, error } = await supabase
     .from('bookings')
     .update({ status: 'confirmed' } as never)
     .eq('id', id)
@@ -165,7 +183,7 @@ export async function acceptBookingRequest(formData: FormData) {
     .select('id')
     .maybeSingle();
 
-  if ((updated as { id: string } | null)?.id) {
+  if (!error && (updated as { id: string } | null)?.id) {
     await syncBookingToCalendar(id); // create the event now that it's confirmed
   }
 
@@ -176,7 +194,7 @@ export async function acceptBookingRequest(formData: FormData) {
 
 /** Decline a member's pending request (no calendar event was ever created). */
 export async function declineBookingRequest(formData: FormData) {
-  await requireStaff();
+  await requireStaff(); // MULTI-COACH: scope to the request's owning coach
   const id = String(formData.get('id') ?? '');
   if (!id) return;
 
@@ -218,7 +236,7 @@ export async function addAvailability(formData: FormData) {
 }
 
 export async function deleteAvailability(formData: FormData) {
-  await requireStaff();
+  await requireStaff(); // MULTI-COACH: scope to staff_availability.staff_id
   const id = String(formData.get('id') ?? '');
   if (!id) return;
   const supabase = await createSupabaseServer();
@@ -227,7 +245,7 @@ export async function deleteAvailability(formData: FormData) {
 }
 
 export async function toggleAvailability(formData: FormData) {
-  await requireStaff();
+  await requireStaff(); // MULTI-COACH: scope to staff_availability.staff_id
   const id = String(formData.get('id') ?? '');
   const next = String(formData.get('next') ?? '') === 'true';
   if (!id) return;
@@ -238,7 +256,7 @@ export async function toggleAvailability(formData: FormData) {
 
 /** Edit the time window and/or location of an existing availability block. */
 export async function updateAvailability(formData: FormData) {
-  await requireStaff();
+  await requireStaff(); // MULTI-COACH: scope to staff_availability.staff_id
   const id = String(formData.get('id') ?? '');
   const start_time = String(formData.get('start_time') ?? '');
   const end_time = String(formData.get('end_time') ?? '');
@@ -295,7 +313,7 @@ export async function createBlock(
 
 /** Remove a one-off block. */
 export async function deleteBlock(formData: FormData) {
-  await requireStaff();
+  await requireStaff(); // MULTI-COACH: scope to staff_blocks.staff_id
   const id = String(formData.get('id') ?? '');
   if (!id) return;
   const supabase = await createSupabaseServer();
@@ -305,7 +323,7 @@ export async function deleteBlock(formData: FormData) {
 
 /** Staff-initiated cancellation (no client penalty). */
 export async function cancelBooking(id: string) {
-  await requireStaff();
+  await requireStaff(); // MULTI-COACH: scope to the booking's owning coach
   if (!id) return;
   const supabase = await createSupabaseServer();
   await supabase
