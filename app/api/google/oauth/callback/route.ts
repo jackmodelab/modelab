@@ -44,16 +44,15 @@ export async function GET(request: NextRequest) {
     const admin = createSupabaseAdmin();
     await admin.from('staff').update(update as never).eq('id', staff.id);
 
-    // The refresh token lives in the service-role-only staff_google_credentials
-    // table (never the public-readable staff table). Google only returns a
-    // refresh token on (re)consent — only upsert when this response had one.
+    // The refresh token is encrypted at rest in Supabase Vault, reached only via
+    // this service-role RPC (never the public-readable staff table, never
+    // plaintext on the row). Google only returns a refresh token on (re)consent —
+    // only persist when this response actually carried one.
     if (tokens.refresh_token) {
-      await admin
-        .from('staff_google_credentials')
-        .upsert(
-          { staff_id: staff.id, refresh_token: tokens.refresh_token },
-          { onConflict: 'staff_id' }
-        );
+      await admin.rpc('set_staff_google_refresh_token', {
+        p_staff_id: staff.id,
+        p_token: tokens.refresh_token,
+      });
     }
 
     return back('connected');

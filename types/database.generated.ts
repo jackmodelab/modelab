@@ -368,6 +368,8 @@ export type Database = {
       }
       clients: {
         Row: {
+          archived_at: string | null
+          archived_by: string | null
           auth_user_id: string | null
           created_at: string
           date_of_birth: string | null
@@ -383,6 +385,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
           auth_user_id?: string | null
           created_at?: string
           date_of_birth?: string | null
@@ -398,6 +402,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived_at?: string | null
+          archived_by?: string | null
           auth_user_id?: string | null
           created_at?: string
           date_of_birth?: string | null
@@ -412,7 +418,15 @@ export type Database = {
           stripe_customer_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clients_archived_by_fkey"
+            columns: ["archived_by"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       documents: {
         Row: {
@@ -654,7 +668,6 @@ export type Database = {
           display_name: string
           google_calendar_connected_at: string | null
           google_calendar_email: string | null
-          google_refresh_token: string | null
           id: string
           is_active: boolean
           title: string | null
@@ -668,7 +681,6 @@ export type Database = {
           display_name: string
           google_calendar_connected_at?: string | null
           google_calendar_email?: string | null
-          google_refresh_token?: string | null
           id?: string
           is_active?: boolean
           title?: string | null
@@ -682,7 +694,6 @@ export type Database = {
           display_name?: string
           google_calendar_connected_at?: string | null
           google_calendar_email?: string | null
-          google_refresh_token?: string | null
           id?: string
           is_active?: boolean
           title?: string | null
@@ -738,12 +749,84 @@ export type Database = {
           },
         ]
       }
+      staff_blocks: {
+        Row: {
+          created_at: string
+          ends_at: string
+          id: string
+          reason: string | null
+          staff_id: string
+          starts_at: string
+        }
+        Insert: {
+          created_at?: string
+          ends_at: string
+          id?: string
+          reason?: string | null
+          staff_id: string
+          starts_at: string
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string
+          id?: string
+          reason?: string | null
+          staff_id?: string
+          starts_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_blocks_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_google_credentials: {
+        Row: {
+          created_at: string
+          refresh_token_secret_id: string | null
+          staff_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          refresh_token_secret_id?: string | null
+          staff_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          refresh_token_secret_id?: string | null
+          staff_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_google_credentials_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: true
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      get_staff_google_refresh_token: {
+        Args: { p_staff_id: string }
+        Returns: string
+      }
       is_staff: { Args: never; Returns: boolean }
+      set_staff_google_refresh_token: {
+        Args: { p_staff_id: string; p_token: string }
+        Returns: undefined
+      }
     }
     Enums: {
       assessment_type: "body_comp" | "movement_screen" | "custom"

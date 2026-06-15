@@ -71,22 +71,25 @@ export type Database = Generated & {
           },
         ];
       };
+      // refresh_token moved into Supabase Vault in 20260615120000; the row now
+      // holds only the secret's UUID. App code never reads/writes this column
+      // directly — it goes through the get/set RPCs below.
       staff_google_credentials: {
         Row: {
           staff_id: string;
-          refresh_token: string;
+          refresh_token_secret_id: string | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           staff_id: string;
-          refresh_token: string;
+          refresh_token_secret_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           staff_id?: string;
-          refresh_token?: string;
+          refresh_token_secret_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -99,6 +102,19 @@ export type Database = Generated & {
             referencedColumns: ['id'];
           },
         ];
+      };
+    };
+    // Vault-backed accessors for the encrypted Google refresh token
+    // (20260615120000). Merge into database.generated.ts on the next
+    // `npm run db:types`.
+    Functions: Generated['public']['Functions'] & {
+      get_staff_google_refresh_token: {
+        Args: { p_staff_id: string };
+        Returns: string | null;
+      };
+      set_staff_google_refresh_token: {
+        Args: { p_staff_id: string; p_token: string };
+        Returns: undefined;
       };
     };
   };
