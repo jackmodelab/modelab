@@ -4,9 +4,16 @@ import { format, parseISO } from 'date-fns';
 import { requireStaff } from '@/lib/auth/guards';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { formatTime, bookingStatusLabel } from '@/lib/format';
+import { reportTypeLabel } from '@/lib/reports/templates';
 import { ClientFiles } from '@/components/portal/client-files';
 import { ClientDangerZone } from '@/components/portal/client-danger-zone';
-import type { ClientRow, BookingRow, ClientPackageRow, DocumentRow } from '@/types/database';
+import { Icon } from '@/components/portal/icons';
+import type { ClientRow, BookingRow, ClientPackageRow, DocumentRow, ClientReportRow } from '@/types/database';
+
+type ReportListItem = Pick<
+  ClientReportRow,
+  'id' | 'title' | 'type' | 'status' | 'shared_with_client' | 'created_at'
+>;
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -31,13 +38,14 @@ export default async function ClientDetailPage({
   const sp = (searchParams ? await searchParams : {}) as { error?: string; file_error?: string };
   const supabase = await createSupabaseServer();
 
-  const [{ data: clientData }, { data: bookings }, { data: pkgs }, { data: services }, { data: locations }, { data: docs }] = await Promise.all([
+  const [{ data: clientData }, { data: bookings }, { data: pkgs }, { data: services }, { data: locations }, { data: docs }, { data: reportRows }] = await Promise.all([
     supabase.from('clients').select('*').eq('id', id).maybeSingle(),
     supabase.from('bookings').select('*').eq('client_id', id).order('starts_at', { ascending: true }),
     supabase.from('client_packages').select('*').eq('client_id', id).eq('status', 'active'),
     supabase.from('services').select('id,name'),
     supabase.from('locations').select('id,name,suburb'),
     supabase.from('documents').select('id,title,description,file_type,created_at').eq('client_id', id).order('created_at', { ascending: false }),
+    supabase.from('client_reports').select('id,title,type,status,shared_with_client,created_at').eq('client_id', id).order('created_at', { ascending: false }),
   ]);
 
   const client = clientData as ClientRow | null;
@@ -46,6 +54,7 @@ export default async function ClientDetailPage({
   const bks = (bookings ?? []) as BookingRow[];
   const activePkgs = (pkgs ?? []) as ClientPackageRow[];
   const documents = (docs ?? []) as Pick<DocumentRow, 'id' | 'title' | 'description' | 'file_type' | 'created_at'>[];
+  const reports = (reportRows ?? []) as ReportListItem[];
   const archived = Boolean(client.archived_at);
   const fileError = (['missing', 'size', 'upload'] as const).find((e) => e === sp.file_error);
   const serviceName = new Map(((services ?? []) as { id: string; name: string }[]).map((s) => [s.id, s.name]));
@@ -198,6 +207,41 @@ export default async function ClientDetailPage({
           </div>
         </section>
       </div>
+
+      <section className="surface" style={{ marginTop: 20 }}>
+        <div className="surface-head">
+          <h2>
+            Reports
+            <span className="count">{reports.length}</span>
+          </h2>
+          <Link className="btn btn--mini" href={`/portal/reports/new?client=${client.id}`}>
+            <Icon.plus /> New report
+          </Link>
+        </div>
+        <div className="surface-body">
+          {reports.length === 0 ? (
+            <p className="empty">No reports yet.</p>
+          ) : (
+            reports.map((r) => (
+              <Link className="row-item is-clickable" key={r.id} href={`/portal/reports/${r.id}`}>
+                <div className="ri-main">
+                  <div className="ri-title">{r.title}</div>
+                  <div className="ri-sub">
+                    {reportTypeLabel(r.type)} · {format(parseISO(r.created_at), 'dd MMM yyyy')}
+                  </div>
+                </div>
+                <div className="ri-actions">
+                  {r.shared_with_client && <span className="pill pill--ok">Shared</span>}
+                  <span className={`pill ${r.status === 'published' ? 'pill--dark' : ''}`}>
+                    {r.status === 'published' ? 'Published' : 'Draft'}
+                  </span>
+                  <Icon.chevronR className="ri-chevron" />
+                </div>
+              </Link>
+            ))
+          )}
+        </div>
+      </section>
 
       <ClientFiles clientId={client.id} documents={documents} uploadError={fileError} />
 

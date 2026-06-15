@@ -19,6 +19,7 @@ function buildSections(notify: boolean): RailSection[] {
         { href: '/account/bookings', label: 'My bookings',    icon: 'calendar' },
         { href: '/account/packages', label: 'Packages',       icon: 'packageIcon' },
         { href: '/account/files',    label: 'Files',          icon: 'file' },
+        { href: '/account/reports',  label: 'Reports',        icon: 'invoice' },
       ],
     },
     {
@@ -37,6 +38,7 @@ function buildMobileTabs(notify: boolean): MobileTab[] {
     { href: '/account',          label: 'Home',     icon: 'home' },
     { href: '/account/bookings', label: 'Sessions', icon: 'calendar' },
     { href: '/account/files',    label: 'Files',    icon: 'file' },
+    { href: '/account/reports',  label: 'Reports',  icon: 'invoice' },
     { href: '/account/packages', label: 'Packs',    icon: 'packageIcon' },
     { href: '/account/profile',  label: 'Profile',  icon: 'user', dot: notify },
   ];

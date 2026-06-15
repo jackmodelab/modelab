@@ -1748,3 +1748,160 @@
 }
 .app .att-option:hover, .app .att-option.is-selected { background: var(--rail); }
 .app .att-check { width: 13px; height: 13px; margin-left: auto; color: var(--engineered-black); }
+
+/* =========================================================================
+   REPORTS — builder, document view, print
+   ========================================================================= */
+
+/* ---- Builder ----------------------------------------------------------- */
+.app .rb-form { max-width: none; display: grid; gap: 20px; }
+.app .rb-form .surface-head .btn--mini { white-space: nowrap; }
+
+/* Bare inputs/areas inside the builder (not wrapped in .p-field) */
+.app .rb-metric-row input,
+.app .rb-section-heading,
+.app .rb-section textarea {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--pure-white);
+  font-size: 13.5px;
+  color: var(--engineered-black);
+}
+.app .rb-metric-row input:focus,
+.app .rb-section-heading:focus,
+.app .rb-section textarea:focus {
+  outline: none;
+  border-color: var(--engineered-black);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.app .rb-section textarea { resize: vertical; line-height: 1.55; }
+
+.app .rb-metrics { display: grid; gap: 10px; }
+.app .rb-metric-row {
+  display: grid;
+  grid-template-columns: 1.5fr 0.9fr 0.7fr 1.2fr auto;
+  gap: 8px; align-items: center;
+}
+@media (max-width: 640px) {
+  .app .rb-metric-row { grid-template-columns: 1fr 1fr; }
+  .app .rb-metric-row > button { grid-column: 1 / -1; justify-content: center; }
+}
+
+.app .rb-sections { display: flex; flex-direction: column; gap: 16px; }
+.app .rb-section {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 14px; border: 1px solid var(--line);
+  border-radius: var(--radius-lg); background: var(--lab-white);
+}
+.app .rb-section-head { display: flex; align-items: center; gap: 10px; }
+.app .rb-section-heading { font-weight: 600; }
+.app .rb-section-tools { display: flex; gap: 4px; flex-shrink: 0; }
+.app .rb-icon-btn {
+  width: 30px; height: 30px; display: grid; place-items: center;
+  border: 1px solid var(--line-strong); background: var(--pure-white);
+  border-radius: var(--radius); color: var(--slate);
+  transition: border-color .15s var(--p-ease), color .15s var(--p-ease);
+}
+.app .rb-icon-btn:hover:not(:disabled) { border-color: var(--engineered-black); color: var(--engineered-black); }
+.app .rb-icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.app .rb-icon-btn svg { width: 14px; height: 14px; }
+.app .rb-icon-btn--danger:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); }
+.app .rb-flip { transform: rotate(180deg); }
+
+/* ---- View chrome (not printed) ----------------------------------------- */
+.app .report-toolbar {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--line);
+}
+.app .report-toolbar form { display: inline; margin: 0; }
+.app .report-banner {
+  display: flex; gap: 8px; align-items: baseline;
+  background: var(--warn-soft); border: 1px solid rgba(199, 122, 42, 0.3);
+  color: #8a5a18; border-radius: var(--radius-lg);
+  padding: 12px 16px; margin-bottom: 18px; font-size: 13px; line-height: 1.5;
+}
+
+/* ---- The document ------------------------------------------------------ */
+.app .report-page { max-width: 860px; margin: 0 auto; }
+.app .report-doc {
+  background: var(--pure-white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 2px rgba(14, 15, 17, 0.04);
+  padding: clamp(28px, 4vw, 56px);
+  color: var(--engineered-black);
+}
+
+.app .report-masthead { border-bottom: 2px solid var(--engineered-black); padding-bottom: 22px; margin-bottom: 26px; }
+.app .report-brand { display: flex; align-items: baseline; gap: 12px; }
+.app .report-brand-mark { font-family: var(--font-mono); font-weight: 700; font-size: 14px; letter-spacing: 0.22em; }
+.app .report-brand-sub {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--slate-soft);
+}
+.app .report-title { font-size: clamp(1.6rem, 1.2rem + 2vw, 2.2rem); margin-top: 14px; letter-spacing: -0.02em; }
+.app .report-meta { display: flex; flex-wrap: wrap; gap: 8px 32px; margin-top: 18px; }
+.app .report-meta > span { font-size: 13px; color: var(--ink-soft); }
+.app .report-meta-k {
+  display: block; font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--slate-soft); margin-bottom: 3px;
+}
+
+.app .report-summary {
+  font-size: 15.5px; line-height: 1.65; color: var(--ink-soft);
+  margin-bottom: 28px; padding-left: 16px; border-left: 3px solid var(--accent);
+}
+
+.app .report-metrics {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px; margin-bottom: 30px;
+}
+.app .report-metric { border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 14px 16px; }
+.app .report-metric-k {
+  font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--slate-soft); margin-bottom: 8px;
+}
+.app .report-metric-v { font-size: 1.7rem; font-weight: 600; letter-spacing: -0.03em; line-height: 1; }
+.app .report-metric-u { font-size: 0.85rem; font-weight: 500; color: var(--slate); margin-left: 4px; }
+.app .report-metric-c { font-family: var(--font-mono); font-size: 11px; color: var(--slate); margin-top: 8px; }
+
+.app .report-sections { display: flex; flex-direction: column; gap: 24px; }
+.app .report-section-head {
+  font-size: 1.1rem; margin-bottom: 10px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.app .report-section-body { font-size: 14.5px; line-height: 1.7; color: var(--ink-soft); }
+.app .report-section-body p { margin-bottom: 12px; }
+.app .report-section-body p:last-child { margin-bottom: 0; }
+
+.app .report-footer {
+  display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--line-strong);
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--slate-soft);
+}
+
+/* ---- Print / save-as-PDF ---------------------------------------------- */
+@media print {
+  .no-print,
+  .rail, .mobile-tabs, .topbar,
+  .report-toolbar, .report-banner, .toast-stack { display: none !important; }
+
+  /* Flatten the app shell to a single white page. */
+  .app { display: block !important; min-height: 0 !important; background: #fff !important; color: #000 !important; }
+  .app .main { display: block !important; padding: 0 !important; }
+  .app .page { padding: 0 !important; max-width: none !important; }
+
+  .app .report-page { max-width: none !important; margin: 0 !important; }
+  .app .report-doc {
+    border: none !important; border-radius: 0 !important;
+    box-shadow: none !important; padding: 0 !important; background: #fff !important;
+  }
+  /* Avoid awkward page breaks inside a metric card or section. */
+  .app .report-metric, .app .report-section { break-inside: avoid; }
+  .app .report-masthead { break-after: avoid; }
+
+  @page { margin: 16mm; }
+}

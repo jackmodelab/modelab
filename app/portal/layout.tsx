@@ -25,6 +25,7 @@ function buildSections(notify: boolean, pendingCount: number): RailSection[] {
       label: 'Library',
       items: [
         { href: '/portal/clients',      label: 'Clients',      icon: 'users' },
+        { href: '/portal/reports',      label: 'Reports',      icon: 'invoice' },
       ],
     },
     {

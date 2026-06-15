@@ -9,6 +9,9 @@ const MESSAGES: Record<string, string> = {
   created: 'Booking created.',
   updated: 'Booking updated.',
   saved: 'Changes saved.',
+  report_created: 'Report created.',
+  report_saved: 'Report saved.',
+  report_deleted: 'Report deleted.',
 };
 
 /**

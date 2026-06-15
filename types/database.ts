@@ -71,6 +71,76 @@ export type Database = Generated & {
           },
         ];
       };
+      // Staff-authored client reports added in 20260615150000_client_reports.sql.
+      // `content` holds the structured body (sections/metrics) as jsonb — see
+      // ReportContent in lib/reports/queries.ts. Merge into database.generated.ts
+      // on the next `npm run db:types`.
+      client_reports: {
+        Row: {
+          id: string;
+          client_id: string;
+          author_staff_id: string | null;
+          type: ('progress' | 'quarterly' | 'results' | 'general');
+          title: string;
+          period_start: string | null;
+          period_end: string | null;
+          summary: string | null;
+          content: import('./database.generated').Json;
+          status: ('draft' | 'published');
+          shared_with_client: boolean;
+          published_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          author_staff_id?: string | null;
+          type?: ('progress' | 'quarterly' | 'results' | 'general');
+          title: string;
+          period_start?: string | null;
+          period_end?: string | null;
+          summary?: string | null;
+          content?: import('./database.generated').Json;
+          status?: ('draft' | 'published');
+          shared_with_client?: boolean;
+          published_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          author_staff_id?: string | null;
+          type?: ('progress' | 'quarterly' | 'results' | 'general');
+          title?: string;
+          period_start?: string | null;
+          period_end?: string | null;
+          summary?: string | null;
+          content?: import('./database.generated').Json;
+          status?: ('draft' | 'published');
+          shared_with_client?: boolean;
+          published_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'client_reports_client_id_fkey';
+            columns: ['client_id'];
+            isOneToOne: false;
+            referencedRelation: 'clients';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'client_reports_author_staff_id_fkey';
+            columns: ['author_staff_id'];
+            isOneToOne: false;
+            referencedRelation: 'staff';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       // refresh_token moved into Supabase Vault in 20260615120000; the row now
       // holds only the secret's UUID. App code never reads/writes this column
       // directly — it goes through the get/set RPCs below.
@@ -103,6 +173,12 @@ export type Database = Generated & {
           },
         ];
       };
+    };
+    // Report enums added in 20260615150000_client_reports.sql. Merge into
+    // database.generated.ts on the next `npm run db:types`.
+    Enums: Generated['public']['Enums'] & {
+      report_type: 'progress' | 'quarterly' | 'results' | 'general';
+      report_status: 'draft' | 'published';
     };
     // Vault-backed accessors for the encrypted Google refresh token
     // (20260615120000). Merge into database.generated.ts on the next
@@ -138,9 +214,12 @@ export type StaffBlockRow = Tables['staff_blocks']['Row'];
 export type ClientAssignmentRow = Tables['client_assignments']['Row'];
 export type LeadRow = Tables['leads']['Row'];
 export type ClientScreeningRow = Tables['client_screenings']['Row'];
+export type ClientReportRow = Tables['client_reports']['Row'];
 
 export type LocationStatus = Enums['location_status'];
 export type BookingStatus = Enums['booking_status'];
 export type PackageStatus = Enums['package_status'];
 export type DiscountTier = Enums['discount_tier'];
 export type AssessmentType = Enums['assessment_type'];
+export type ReportType = Enums['report_type'];
+export type ReportStatus = Enums['report_status'];
