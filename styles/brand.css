@@ -497,6 +497,7 @@ p  { text-wrap: pretty; }
 .field label { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--slate-soft); }
 .field input, .field select, .field textarea {
   font: inherit; font-size: 16px; /* >=16px prevents iOS focus-zoom */
+  width: 100%; min-width: 0; /* let a wide <select> option shrink, not blow out the column */
   padding: 0.85em 1em;
   background: var(--pure-white);
   border: 1px solid var(--line-strong);

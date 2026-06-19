@@ -1244,6 +1244,33 @@
 .app .kv-k { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--slate-soft); padding-top: 2px; }
 .app .kv-v { color: var(--engineered-black); }
 
+/* Client-directory filter bar — responsive grid (search · tier · status · submit).
+   On phones the search box and submit button span the full width and the two
+   selects sit side by side; on very narrow screens everything stacks. */
+.app .client-filter {
+  max-width: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px 150px auto;
+  gap: 12px; align-items: end;
+  padding: 16px; margin-bottom: 18px;
+}
+@media (max-width: 760px) {
+  .app .client-filter { grid-template-columns: 1fr 1fr; }
+  .app .client-filter .cf-search,
+  .app .client-filter .cf-submit { grid-column: 1 / -1; }
+}
+@media (max-width: 460px) {
+  .app .client-filter { grid-template-columns: 1fr; }
+}
+
+/* Mobile: render form controls at ≥16px so iOS Safari doesn't auto-zoom the
+   viewport when a field gains focus. Desktop keeps the denser type scale. */
+@media (max-width: 720px) {
+  .app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  .app select,
+  .app textarea { font-size: 16px; }
+}
+
 /* =========================================================================
    MODAL
    ========================================================================= */

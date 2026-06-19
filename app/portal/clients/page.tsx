@@ -70,12 +70,12 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
         </div>
       </header>
 
-      <form method="get" className="p-form" style={{ maxWidth: 'none', flexDirection: 'row', alignItems: 'end', gap: 12, padding: 16, marginBottom: 18 }}>
-        <div className="p-field" style={{ flex: 1 }}>
+      <form method="get" className="p-form client-filter">
+        <div className="p-field cf-search">
           <label htmlFor="q">Search</label>
           <input id="q" name="q" defaultValue={q} placeholder="Name, email, phone…" />
         </div>
-        <div className="p-field" style={{ width: 180 }}>
+        <div className="p-field">
           <label htmlFor="tier">Tier</label>
           <select id="tier" name="tier" defaultValue={tierFilter}>
             <option value="">All tiers</option>
@@ -84,7 +84,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
             <option value="friends_family">F&amp;F</option>
           </select>
         </div>
-        <div className="p-field" style={{ width: 150 }}>
+        <div className="p-field">
           <label htmlFor="view">Status</label>
           <select id="view" name="view" defaultValue={view}>
             <option value="active">Active</option>
@@ -92,7 +92,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
             <option value="all">All</option>
           </select>
         </div>
-        <button className="btn" type="submit">Filter</button>
+        <button className="btn cf-submit" type="submit">Filter</button>
       </form>
 
       <section className="surface">

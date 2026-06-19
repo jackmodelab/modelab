@@ -12,7 +12,7 @@ const inputStyle: React.CSSProperties = {
   padding: '9px 11px',
   border: '1px solid #e2e2e2',
   borderRadius: 8,
-  fontSize: 14,
+  fontSize: 16, // ≥16px keeps iOS Safari from auto-zooming on focus
   fontFamily: 'inherit',
   background: '#fff',
   color: '#171717',
