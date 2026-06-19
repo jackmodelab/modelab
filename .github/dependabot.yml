@@ -1,0 +1,28 @@
+# Keep dependencies patched (F-9 / T-9). Grouped so the security-critical
+# packages (Next, Supabase, React) surface as focused PRs.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      next:
+        patterns:
+          - "next"
+          - "eslint-config-next"
+          - "@next/*"
+      supabase:
+        patterns:
+          - "@supabase/*"
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly

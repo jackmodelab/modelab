@@ -498,6 +498,44 @@ function safeFilename(name: string): string {
     .slice(-120);
 }
 
+// Allowlisted client-upload types (F-4 / T-4). A client-supplied `file.type` is
+// not trusted on its own — the file's leading "magic" bytes must also match the
+// claimed type's family, so a renamed/spoofed file can't slip an unexpected type
+// (e.g. an .html or .svg with a stored-XSS payload) into the shared bucket.
+const ALLOWED_UPLOAD_TYPES: { mimes: string[]; magic: number[][] }[] = [
+  { mimes: ['application/pdf'], magic: [[0x25, 0x50, 0x44, 0x46]] }, // "%PDF"
+  { mimes: ['image/png'], magic: [[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]] },
+  { mimes: ['image/jpeg'], magic: [[0xff, 0xd8, 0xff]] },
+  { mimes: ['image/webp'], magic: [[0x52, 0x49, 0x46, 0x46]] }, // "RIFF" (….WEBP)
+  { mimes: ['image/gif'], magic: [[0x47, 0x49, 0x46, 0x38]] }, // "GIF8"
+  {
+    // Office Open XML (docx / xlsx / pptx) are ZIP containers.
+    mimes: [
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    ],
+    magic: [[0x50, 0x4b, 0x03, 0x04]], // "PK\x03\x04"
+  },
+  {
+    // Legacy Office (doc / xls / ppt) are OLE compound files.
+    mimes: ['application/msword', 'application/vnd.ms-excel', 'application/vnd.ms-powerpoint'],
+    magic: [[0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]],
+  },
+];
+
+/**
+ * True if the upload is an allowlisted type whose leading bytes match the
+ * declared content-type's family. Rejects unknown MIME types outright and
+ * spoofed ones whose magic bytes don't line up (F-4).
+ */
+async function isAllowedUpload(file: File): Promise<boolean> {
+  const group = ALLOWED_UPLOAD_TYPES.find((g) => g.mimes.includes(file.type));
+  if (!group) return false;
+  const header = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+  return group.magic.some((sig) => sig.every((byte, i) => header[i] === byte));
+}
+
 /** Upload a file and share it with a client (staff only). */
 export async function uploadClientDocument(formData: FormData) {
   const { staff } = await requireStaff();
@@ -511,6 +549,9 @@ export async function uploadClientDocument(formData: FormData) {
   }
   if (file.size > MAX_FILE_BYTES) {
     redirect(`/portal/clients/${clientId}?file_error=size`);
+  }
+  if (!(await isAllowedUpload(file))) {
+    redirect(`/portal/clients/${clientId}?file_error=type`);
   }
 
   const path = `${clientId}/${crypto.randomUUID()}-${safeFilename(file.name)}`;

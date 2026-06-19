@@ -8,7 +8,9 @@ import { clientIp, rateLimit } from '@/lib/rate-limit';
 
 export type AuthState = { error?: string; success?: string } | undefined;
 
-const PASSWORD_MIN = 8;
+// Minimum password length for new sign-ups and password resets. Raised 8 → 12
+// (F-7 / T-7); pair with leaked-password protection in the Supabase dashboard.
+const PASSWORD_MIN = 12;
 const TOO_MANY = 'Too many attempts. Please wait a few minutes and try again.';
 
 function readCredentials(formData: FormData) {

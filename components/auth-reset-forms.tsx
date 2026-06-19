@@ -59,7 +59,8 @@ export function SetPasswordForm() {
           type="password"
           autoComplete="new-password"
           required
-          placeholder="At least 8 characters"
+          minLength={12}
+          placeholder="At least 12 characters"
         />
       </div>
 

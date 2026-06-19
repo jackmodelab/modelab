@@ -37,6 +37,8 @@ const securityHeaders = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Don't advertise the framework in the `x-powered-by` response header (F-6 / T-6).
+  poweredByHeader: false,
   // Pin the workspace root: a stray lockfile in the user's home dir made Next 16
   // infer the wrong root, which broke output-file tracing / page collection.
   turbopack: { root: import.meta.dirname },

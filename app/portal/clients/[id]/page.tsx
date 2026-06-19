@@ -56,7 +56,7 @@ export default async function ClientDetailPage({
   const documents = (docs ?? []) as Pick<DocumentRow, 'id' | 'title' | 'description' | 'file_type' | 'created_at'>[];
   const reports = (reportRows ?? []) as ReportListItem[];
   const archived = Boolean(client.archived_at);
-  const fileError = (['missing', 'size', 'upload'] as const).find((e) => e === sp.file_error);
+  const fileError = (['missing', 'size', 'upload', 'type'] as const).find((e) => e === sp.file_error);
   const serviceName = new Map(((services ?? []) as { id: string; name: string }[]).map((s) => [s.id, s.name]));
   const locationName = new Map(((locations ?? []) as { id: string; name: string; suburb: string | null }[]).map((l) => [l.id, l.suburb || l.name]));
 

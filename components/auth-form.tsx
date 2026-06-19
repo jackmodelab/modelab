@@ -50,7 +50,8 @@ export function AuthForm({ mode, next }: { mode: 'login' | 'signup'; next?: stri
           type="password"
           autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
           required
-          placeholder={mode === 'signup' ? 'At least 8 characters' : 'Your password'}
+          minLength={mode === 'signup' ? 12 : undefined}
+          placeholder={mode === 'signup' ? 'At least 12 characters' : 'Your password'}
         />
         {mode === 'login' && (
           <p style={{ marginTop: '0.5rem', textAlign: 'right' }}>

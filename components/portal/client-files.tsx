@@ -17,16 +17,18 @@ export function ClientFiles({
 }: {
   clientId: string;
   documents: DocItem[];
-  uploadError?: 'missing' | 'size' | 'upload';
+  uploadError?: 'missing' | 'size' | 'upload' | 'type';
 }) {
   const errorText =
     uploadError === 'size'
       ? 'That file is too large (25 MB max).'
-      : uploadError === 'upload'
-        ? 'Upload failed — please try again.'
-        : uploadError === 'missing'
-          ? 'Choose a file to share.'
-          : '';
+      : uploadError === 'type'
+        ? 'That file type isn’t allowed. Use a PDF, image (PNG, JPG, WebP, GIF), or Office document.'
+        : uploadError === 'upload'
+          ? 'Upload failed — please try again.'
+          : uploadError === 'missing'
+            ? 'Choose a file to share.'
+            : '';
 
   return (
     <section className="surface" style={{ marginTop: 20 }}>
@@ -43,7 +45,13 @@ export function ClientFiles({
           <div className="p-form-row-2">
             <div className="p-field">
               <label htmlFor="file">File</label>
-              <input id="file" name="file" type="file" required />
+              <input
+                id="file"
+                name="file"
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                required
+              />
             </div>
             <div className="p-field">
               <label htmlFor="title">Title (optional)</label>
