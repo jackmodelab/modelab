@@ -10,6 +10,7 @@ import {
   upsertBookingCalendar,
 } from '@/lib/google/booking-sync';
 import { DEFAULT_DURATION_MINUTES } from '@/lib/booking/time';
+import { siteOrigin } from '@/lib/site-url';
 
 // Postgres error code raised when the `bookings_no_overlap_per_staff` exclusion
 // constraint rejects a double-booking (ARC-2 backstop).
@@ -382,7 +383,7 @@ export async function inviteClient(formData: FormData) {
   // adopts a staff-created stub with the same email) as the auth user is made.
   const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
     data: { full_name: full_name || null },
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/reset-password`,
+    redirectTo: `${await siteOrigin()}/auth/callback?next=/reset-password`,
   });
 
   const invitedUserId = invited?.user?.id;
@@ -466,7 +467,7 @@ export async function reactivateClient(formData: FormData) {
   const email = (client as { email: string } | null)?.email;
   if (email) {
     await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/reset-password`,
+      redirectTo: `${await siteOrigin()}/auth/callback?next=/reset-password`,
     });
   }
 

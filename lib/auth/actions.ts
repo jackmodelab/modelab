@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
+import { siteOrigin } from '@/lib/site-url';
 
 export type AuthState = { error?: string; success?: string } | undefined;
 
@@ -83,7 +84,7 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
     password,
     options: {
       data: { full_name: fullName },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      emailRedirectTo: `${await siteOrigin()}/auth/callback`,
     },
   });
   if (error) return { error: error.message };
@@ -123,7 +124,7 @@ export async function requestPasswordReset(_prev: AuthState, formData: FormData)
 
   const supabase = await createSupabaseServer();
   await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/reset-password`,
+    redirectTo: `${await siteOrigin()}/auth/callback?next=/reset-password`,
   });
 
   return { success: 'If an account exists for that email, a reset link is on its way. Check your inbox.' };
