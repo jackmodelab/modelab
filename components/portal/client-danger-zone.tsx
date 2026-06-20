@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { archiveClient, reactivateClient, deleteClient } from '@/lib/portal/actions';
+import { archiveClient, reactivateClient, deleteClient, resendInvite } from '@/lib/portal/actions';
 
 /**
  * Staff-only client lifecycle controls on the client detail page.
+ *  - Resend invite (active + not signed up yet): re-email the set-password link.
  *  - Archive (active) / Reactivate (archived): retain data, toggle access.
  *  - Delete: permanent, gated behind typing the client's exact name.
  */
@@ -12,11 +13,13 @@ export function ClientDangerZone({
   clientId,
   clientName,
   archived,
+  pendingInvite,
   nameError,
 }: {
   clientId: string;
   clientName: string;
   archived: boolean;
+  pendingInvite?: boolean;
   nameError?: boolean;
 }) {
   const [confirm, setConfirm] = useState('');
@@ -32,6 +35,21 @@ export function ClientDangerZone({
         <span className={`pill ${archived ? '' : 'pill--ok'}`}>{archived ? 'Archived' : 'Active'}</span>
       </div>
       <div className="surface-body--pad" style={{ display: 'grid', gap: 18 }}>
+        {/* Resend invite — only useful while they haven't set up access yet */}
+        {pendingInvite && !archived && (
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 13.5, marginBottom: 4 }}>Resend invite</div>
+            <p style={{ color: 'var(--slate)', fontSize: 13, lineHeight: 1.5, maxWidth: '60ch' }}>
+              This client hasn’t set up their account yet. Resend the email with a fresh link to set
+              their password and access the member portal.
+            </p>
+            <form action={resendInvite} style={{ marginTop: 12 }}>
+              <input type="hidden" name="id" value={clientId} />
+              <button className="btn btn--mini" type="submit">Resend invite email</button>
+            </form>
+          </div>
+        )}
+
         {/* Archive / Reactivate */}
         <div>
           {archived ? (

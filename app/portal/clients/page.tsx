@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { format, parseISO } from 'date-fns';
 import { requireStaff } from '@/lib/auth/guards';
-import { createSupabaseServer } from '@/lib/supabase/server';
+import { createSupabaseServer, createSupabaseAdmin } from '@/lib/supabase/server';
 import { Icon } from '@/components/portal/icons';
 import type { ClientRow, BookingRow } from '@/types/database';
 
@@ -30,6 +30,18 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
 
   const all = (clients ?? []) as ClientRow[];
   const bks = (bookings ?? []) as Pick<BookingRow, 'id' | 'client_id' | 'starts_at' | 'status'>[];
+
+  // Which clients have actually set up their account (signed in at least once)?
+  // inviteUserByEmail sets auth_user_id at invite time, so we read the auth users'
+  // last_sign_in_at to flag those still sitting on an unaccepted invite.
+  const signedIn = new Set<string>();
+  const admin = createSupabaseAdmin();
+  for (let page = 1; ; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    const users = data?.users ?? [];
+    for (const u of users) if (u.last_sign_in_at) signedIn.add(u.id);
+    if (error || users.length < 200) break;
+  }
 
   const sessionCounts = new Map<string, number>();
   const nextBooking = new Map<string, string>();
@@ -109,6 +121,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
             filtered.map((c) => {
               const next = nextBooking.get(c.id);
               const sessions = sessionCounts.get(c.id) ?? 0;
+              const pending = !c.archived_at && (!c.auth_user_id || !signedIn.has(c.auth_user_id));
               return (
                 <Link className="row-item is-clickable" key={c.id} href={`/portal/clients/${c.id}`}>
                   <div className="ri-main">
@@ -123,6 +136,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
                   </div>
                   <div className="ri-actions">
                     {c.archived_at && <span className="pill">Archived</span>}
+                    {pending && <span className="pill">Invite pending</span>}
                     <span className="pill">{TIER_LABEL[c.discount_tier] ?? c.discount_tier}</span>
                     <Icon.arrowR />
                   </div>

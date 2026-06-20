@@ -477,6 +477,45 @@ export async function reactivateClient(formData: FormData) {
 }
 
 /**
+ * Re-send the set-up email to a client who was invited but hasn't created their
+ * account yet (never set a password / signed in).
+ *
+ * inviteUserByEmail creates the auth user immediately, so a re-invite would fail
+ * with "already registered" once the first invite has gone out. For an account
+ * that already exists we therefore re-send via resetPasswordForEmail (same
+ * /reset-password landing — works as a first-time "set your password" link too).
+ * The only time we fall back to inviteUserByEmail is a login-less stub row that
+ * has no auth user yet, where a reset email would have nothing to target.
+ */
+export async function resendInvite(formData: FormData) {
+  await requireStaff();
+  const id = String(formData.get('id') ?? '');
+  if (!id) return;
+
+  const admin = createSupabaseAdmin();
+  const { data: client } = await admin
+    .from('clients')
+    .select('email, auth_user_id')
+    .eq('id', id)
+    .maybeSingle();
+
+  const row = client as { email: string; auth_user_id: string | null } | null;
+  // Best-effort — a mail hiccup must not surface as a hard error to staff.
+  if (row?.email) {
+    const redirectTo = `${await siteOrigin()}/auth/callback?next=/reset-password`;
+    if (row.auth_user_id) {
+      await admin.auth.resetPasswordForEmail(row.email, { redirectTo });
+    } else {
+      await admin.auth.admin.inviteUserByEmail(row.email, { redirectTo });
+    }
+  }
+
+  revalidatePath('/portal/clients');
+  revalidatePath(`/portal/clients/${id}`);
+  redirect(`/portal/clients/${id}?reinvited=1`);
+}
+
+/**
  * Permanently delete a client. Guarded by a typed-name confirmation. When the
  * client has an auth user we delete THAT (auth.users → clients is ON DELETE
  * CASCADE, which then cascades to bookings / packages / documents / etc.);
