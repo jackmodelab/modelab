@@ -73,8 +73,8 @@ export default async function AccountLayout({ children }: { children: React.Reac
   }
 
   const screeningDone = client ? await hasCompletedScreening(client.id) : true;
-  const { count: notifyCount } = client ? await getMemberNotifications(client.id) : { count: 0 };
-  const notify = notifyCount > 0;
+  const { unseen } = client ? await getMemberNotifications(client.id) : { unseen: 0 };
+  const notify = unseen > 0;
   const sections = buildSections(notify);
   const mobileTabs = buildMobileTabs(notify);
 

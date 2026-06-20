@@ -7,6 +7,7 @@ import { signOut } from '@/lib/auth/actions';
 import { googleConfigured } from '@/lib/google/oauth';
 import { getStaffNotifications } from '@/lib/notifications';
 import { NotificationsPanel } from '@/components/portal/notifications-panel';
+import { MarkNotificationsSeen } from '@/components/portal/mark-notifications-seen';
 
 export const metadata = { title: 'Profile — MODE Lab' };
 
@@ -91,6 +92,7 @@ export default async function StaffProfilePage({
 
         {/* Side stack */}
         <div className="stack">
+          <MarkNotificationsSeen portal="staff" />
           <NotificationsPanel items={notifications} />
 
           {/* Google Calendar */}

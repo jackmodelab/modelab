@@ -5,6 +5,7 @@ import { updateProfile } from '@/lib/account/actions';
 import { signOut } from '@/lib/auth/actions';
 import { getMemberNotifications } from '@/lib/notifications';
 import { NotificationsPanel } from '@/components/portal/notifications-panel';
+import { MarkNotificationsSeen } from '@/components/portal/mark-notifications-seen';
 import { Icon } from '@/components/portal/icons';
 
 export const metadata = { title: 'Profile — MODE Lab' };
@@ -74,6 +75,7 @@ export default async function ProfilePage() {
 
         {/* Side stack */}
         <div className="stack">
+          <MarkNotificationsSeen portal="member" />
           <NotificationsPanel items={notifications} />
 
           <section className="surface">

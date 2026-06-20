@@ -65,8 +65,8 @@ export default async function PortalLayout({ children }: { children: React.React
     email: c.email,
   }));
 
-  const { count: notifyCount } = await getStaffNotifications();
-  const notify = notifyCount > 0;
+  const { unseen } = await getStaffNotifications();
+  const notify = unseen > 0;
   const sections = buildSections(notify, pendingCount ?? 0);
   const mobileTabs = buildMobileTabs(notify);
 
