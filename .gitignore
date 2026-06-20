@@ -82,5 +82,8 @@ pnpm-debug.log*
 # the live database). Run locally only.
 /scripts/seed-*.mjs
 
+# Throwaway UI screenshots / PDFs from local preview scaffolding
+/screenshots/
+
 # Claude / internal handoff notes — planning docs, not for the public repo
 *_HANDOFF.md
