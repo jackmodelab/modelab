@@ -14,8 +14,9 @@ function toMinutes(timeStr: string) {
 export default async function BookPage() {
   const { client } = await requireClient();
 
-  // Clients can browse services, coaches, and times freely, but the pre-screening
-  // health questionnaire must be complete before a booking can be confirmed.
+  // Pre-screening is recommended but optional — a member can complete it now or in
+  // person at their first session. This flag just decides whether the booking flow
+  // shows the "complete now / do it in person" opt-in.
   const screeningComplete = client ? await hasCompletedScreening(client.id) : false;
 
   const supabase = await createSupabaseServer();

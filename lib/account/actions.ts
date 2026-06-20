@@ -22,6 +22,14 @@ import {
 const OCCUPYING_STATUSES = ['confirmed', 'completed'] as const;
 
 /**
+ * Marker appended to a booking's notes when the member opts to complete the
+ * health pre-screening in person at their first session rather than online.
+ * Surfaces on the staff schedule + requests views so the coach knows to screen
+ * the client on arrival.
+ */
+const IN_PERSON_SCREENING_NOTE = 'Pre-screening: to complete in person';
+
+/**
  * Member-initiated booking cancellation.
  * Applies the 24-hour policy: ≥24hr ahead → `cancelled_24hr_plus` (credit returns);
  * <24hr ahead → `cancelled_under_24hr` (credit consumed).
@@ -70,8 +78,13 @@ export async function requestBooking(formData: FormData) {
   const { client } = await requireClient();
   if (!client) redirect('/login');
 
-  // The pre-screening health questionnaire is mandatory before booking.
-  if (!(await hasCompletedScreening(client.id))) {
+  // Pre-screening is recommended but optional: a member may instead choose to
+  // complete it in person at their first session (the booking UI sends
+  // `screening_in_person` when they do). Block only if they've neither completed
+  // it online nor opted to do it in person.
+  const screeningDone = await hasCompletedScreening(client.id);
+  const screeningInPerson = !!formData.get('screening_in_person');
+  if (!screeningDone && !screeningInPerson) {
     redirect('/account/screening');
   }
 
@@ -158,6 +171,9 @@ export async function requestBooking(formData: FormData) {
       starts_at: start.toISOString(),
       ends_at: end.toISOString(),
       status: 'confirmed',
+      // A member who got here without completed screening chose the in-person
+      // option above; flag it for the coach.
+      notes: screeningDone ? null : IN_PERSON_SCREENING_NOTE,
     } as never)
     .select('id')
     .single();
@@ -180,8 +196,10 @@ export async function requestCustomBooking(formData: FormData) {
   const { client } = await requireClient();
   if (!client) redirect('/login');
 
-  // The pre-screening health questionnaire is mandatory before booking.
-  if (!(await hasCompletedScreening(client.id))) {
+  // Pre-screening is recommended but optional here too — see `requestBooking`.
+  const screeningDone = await hasCompletedScreening(client.id);
+  const screeningInPerson = !!formData.get('screening_in_person');
+  if (!screeningDone && !screeningInPerson) {
     redirect('/account/screening');
   }
 
@@ -216,6 +234,10 @@ export async function requestCustomBooking(formData: FormData) {
   const duration = service.duration_minutes ?? DEFAULT_DURATION_MINUTES;
   const end = new Date(start.getTime() + duration * 60000);
 
+  // Carry the member's note plus, for an in-person screening opt-in, the marker.
+  const notes =
+    [note, screeningDone ? '' : IN_PERSON_SCREENING_NOTE].filter(Boolean).join(' · ') || null;
+
   await admin.from('bookings').insert({
     client_id: client.id,
     staff_id: coachId,
@@ -224,7 +246,7 @@ export async function requestCustomBooking(formData: FormData) {
     starts_at: start.toISOString(),
     ends_at: end.toISOString(),
     status: 'pending',
-    notes: note || null,
+    notes,
   } as never);
   // No calendar sync — the event is created only when the trainer accepts.
 

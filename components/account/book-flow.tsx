@@ -62,6 +62,47 @@ function slotsForBlock(b: FlowAvailabilityBlock, serviceMin: number) {
   return out;
 }
 
+/**
+ * Shown at the confirm step (and the custom-time form) for members who haven't
+ * completed the health pre-screening. Screening is optional for booking: they can
+ * complete it now, or tick the box to do it in person at their first session. The
+ * checkbox carries `screening_in_person` with the booking form so the server lets
+ * the booking through and flags it for the coach.
+ */
+function ScreeningOptIn({
+  inPerson,
+  onChange,
+}: {
+  inPerson: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div style={{ marginTop: 20, background: '#fff8e6', border: '1px solid #f3e0a8', borderRadius: 10, padding: '14px 16px' }}>
+      <div style={{ fontWeight: 650, fontSize: 14, color: '#7a5e10' }}>
+        New client health pre-screening
+      </div>
+      <div style={{ fontSize: 13, color: '#8a6d1a', marginTop: 2, lineHeight: 1.5 }}>
+        We recommend completing the short health questionnaire first — it helps your coach prescribe
+        safely. You can do it now, or complete it in person at your first session.
+      </div>
+      <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center' }}>
+        <Link className="btn btn--ghost" href="/account/screening">
+          Complete pre-screening
+        </Link>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#7a5e10', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            name="screening_in_person"
+            checked={inPerson}
+            onChange={(e) => onChange(e.target.checked)}
+          />
+          I&apos;ll complete it in person at my first session
+        </label>
+      </div>
+    </div>
+  );
+}
+
 export function BookFlow({
   services,
   locations,
@@ -81,6 +122,11 @@ export function BookFlow({
   const [dayIdx, setDayIdx] = useState<number>(0); // 0..13 from today+1
   const [coachId, setCoachId] = useState<string | null>(null);
   const [slotMin, setSlotMin] = useState<number | null>(null);
+
+  // New clients may book before completing the health pre-screening by opting to
+  // do it in person at their first session. Tracks that opt-in for both the
+  // standard confirm step and the custom-time request.
+  const [screenInPerson, setScreenInPerson] = useState(false);
 
   // "Request a specific time" — an off-grid request the trainer must accept.
   const [showCustom, setShowCustom] = useState(false);
@@ -369,16 +415,18 @@ export function BookFlow({
                     />
                   </label>
 
+                  {!screeningComplete && (
+                    <ScreeningOptIn inPerson={screenInPerson} onChange={setScreenInPerson} />
+                  )}
+
                   <div style={{ marginTop: 14 }}>
-                    {screeningComplete ? (
-                      <button className="btn" type="submit" disabled={!customValid}>
-                        Send request to trainer <Icon.arrowR />
-                      </button>
-                    ) : (
-                      <Link className="btn" href="/account/screening">
-                        Complete pre-screening <Icon.arrowR />
-                      </Link>
-                    )}
+                    <button
+                      className="btn"
+                      type="submit"
+                      disabled={!customValid || (!screeningComplete && !screenInPerson)}
+                    >
+                      Send request to trainer <Icon.arrowR />
+                    </button>
                   </div>
                 </form>
               )}
@@ -421,27 +469,13 @@ export function BookFlow({
             </div>
 
             {!screeningComplete && (
-              <div style={{ marginTop: 20, background: '#fff8e6', border: '1px solid #f3e0a8', borderRadius: 10, padding: '14px 16px' }}>
-                <div style={{ fontWeight: 650, fontSize: 14, color: '#7a5e10' }}>
-                  Complete your pre-screening to confirm
-                </div>
-                <div style={{ fontSize: 13, color: '#8a6d1a', marginTop: 2, lineHeight: 1.5 }}>
-                  You can choose your service, coach, and time freely — but the new client health
-                  questionnaire must be completed before a booking can be confirmed.
-                </div>
-              </div>
+              <ScreeningOptIn inPerson={screenInPerson} onChange={setScreenInPerson} />
             )}
 
             <div style={{ marginTop: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              {screeningComplete ? (
-                <button className="btn" type="submit">
-                  Send request <Icon.arrowR />
-                </button>
-              ) : (
-                <Link className="btn" href="/account/screening">
-                  Complete pre-screening <Icon.arrowR />
-                </Link>
-              )}
+              <button className="btn" type="submit" disabled={!screeningComplete && !screenInPerson}>
+                Send request <Icon.arrowR />
+              </button>
               <button className="btn btn--ghost" type="button" onClick={() => setStep(2)}>
                 ← Change time
               </button>

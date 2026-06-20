@@ -104,7 +104,8 @@ export default async function AccountLayout({ children }: { children: React.Reac
               Complete your new client pre-screening
             </div>
             <div style={{ fontSize: 13, color: '#8a6d1a', marginTop: 2 }}>
-              This short health questionnaire is required before you can book your first session.
+              This short health questionnaire helps us train you safely. Complete it now, or in person at
+              your first session.
             </div>
           </div>
           <Link className="btn" href="/account/screening" style={{ flexShrink: 0 }}>
