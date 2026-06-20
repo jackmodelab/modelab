@@ -1,13 +1,13 @@
 import Link from 'next/link';
 import { requireStaff } from '@/lib/auth/guards';
-import { createClient } from '@/lib/portal/actions';
+import { inviteClient } from '@/lib/portal/actions';
 
-export const metadata = { title: 'Add client — MODE Lab' };
+export const metadata = { title: 'Invite client — MODE Lab' };
 
 const ERRORS: Record<string, string> = {
   email: 'Enter a valid email address.',
-  dupe: 'A client with that email already exists.',
-  '1': 'Couldn’t add that client — please check the details and try again.',
+  dupe: 'That email already has an account — they can sign in or reset their password.',
+  '1': 'Couldn’t send that invite — please check the details and try again.',
 };
 
 export default async function NewClientPage({
@@ -23,8 +23,8 @@ export default async function NewClientPage({
     <>
       <header className="page-head">
         <div>
-          <p className="kicker">MODE Lab · Staff · New client</p>
-          <h1>Add a client.</h1>
+          <p className="kicker">MODE Lab · Staff · Invite client</p>
+          <h1>Invite a client.</h1>
         </div>
         <div className="page-head-actions">
           <Link className="btn btn--ghost" href="/portal/clients">
@@ -34,8 +34,9 @@ export default async function NewClientPage({
       </header>
 
       <p style={{ color: 'var(--slate)', maxWidth: '60ch', marginBottom: '1.5rem', fontSize: '13.5px', lineHeight: 1.55 }}>
-        Adds a bookable client record. They won’t get a portal login from here —
-        you can invite them later. Only an email is required.
+        Emails the client a link to set their own password, then adds them to
+        your clients. They’re bookable straight away. Only an email is required —
+        you can fill in the rest now or later.
       </p>
 
       {message && (
@@ -44,7 +45,7 @@ export default async function NewClientPage({
         </div>
       )}
 
-      <form action={createClient} className="p-form">
+      <form action={inviteClient} className="p-form">
         <div className="p-form-row-2">
           <div className="p-field">
             <label htmlFor="full_name">Full name</label>
@@ -88,7 +89,7 @@ export default async function NewClientPage({
 
         <div className="p-form-actions">
           <button className="btn" type="submit">
-            Add client
+            Send invite
           </button>
           <Link className="link-arrow" href="/portal/clients">
             Cancel

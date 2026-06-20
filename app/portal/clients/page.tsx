@@ -65,7 +65,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
         <div className="page-head-actions">
           <span className="pill">{activeCount} active</span>
           <Link className="btn" href="/portal/clients/new">
-            Add client
+            Invite client
           </Link>
         </div>
       </header>

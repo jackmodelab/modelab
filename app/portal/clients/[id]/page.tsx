@@ -31,11 +31,11 @@ export default async function ClientDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ error?: string; file_error?: string }>;
+  searchParams?: Promise<{ error?: string; file_error?: string; invited?: string }>;
 }) {
   await requireStaff();
   const { id } = await params;
-  const sp = (searchParams ? await searchParams : {}) as { error?: string; file_error?: string };
+  const sp = (searchParams ? await searchParams : {}) as { error?: string; file_error?: string; invited?: string };
   const supabase = await createSupabaseServer();
 
   const [{ data: clientData }, { data: bookings }, { data: pkgs }, { data: services }, { data: locations }, { data: docs }, { data: reportRows }] = await Promise.all([
@@ -83,6 +83,18 @@ export default async function ClientDetailPage({
           <span className="pill">{TIER_LABEL[client.discount_tier] ?? client.discount_tier}</span>
         </div>
       </header>
+
+      {sp.invited && (
+        <div
+          style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            background: '#e9f7ef', border: '1px solid #b9e3c8', borderRadius: 10,
+            padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#1f6b3b',
+          }}
+        >
+          Invitation sent to {client.email}. They’ll get an email to set their password and access the member portal.
+        </div>
+      )}
 
       {archived && (
         <div

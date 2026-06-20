@@ -343,12 +343,16 @@ const DISCOUNT_TIERS = new Set(['standard', 'student_senior', 'friends_family'])
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Create a client RECORD (no portal login). Staff add walk-ins / pay-in-studio
- * members here so they're bookable immediately; a portal invite can be sent
- * later. `auth_user_id` stays null until/unless they sign up themselves.
+ * Invite a client to the portal. Creates an auth user (Supabase emails them a
+ * link to set their own password), fills in the rest of their profile on the
+ * `clients` row that the `handle_new_user` trigger creates/adopts, and assigns
+ * them to the inviting coach (client_assignments → "their clients").
+ *
+ * The set-password link lands on /auth/callback?next=/reset-password, mirroring
+ * the password-recovery flow (lib/auth/actions.ts → requestPasswordReset).
  */
-export async function createClient(formData: FormData) {
-  await requireStaff();
+export async function inviteClient(formData: FormData) {
+  const { staff } = await requireStaff();
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
   const full_name = String(formData.get('full_name') ?? '').trim();
   const phone = String(formData.get('phone') ?? '').trim();
@@ -360,11 +364,38 @@ export async function createClient(formData: FormData) {
 
   if (!email || !EMAIL_RE.test(email)) redirect('/portal/clients/new?error=email');
 
-  const supabase = await createSupabaseServer();
-  const { data, error } = await supabase
+  // inviteUserByEmail + admin writes need the service role (creates the auth
+  // user, then the trigger creates/adopts the clients row regardless of RLS).
+  const admin = createSupabaseAdmin();
+
+  // Already has portal access? Don't re-invite an account that can already sign in.
+  const { data: existing } = await admin
     .from('clients')
-    .insert({
-      email,
+    .select('auth_user_id')
+    .eq('email', email)
+    .maybeSingle();
+  if ((existing as { auth_user_id: string | null } | null)?.auth_user_id) {
+    redirect('/portal/clients/new?error=dupe');
+  }
+
+  // Send the invite. The handle_new_user trigger creates the clients row (or
+  // adopts a staff-created stub with the same email) as the auth user is made.
+  const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(email, {
+    data: { full_name: full_name || null },
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/reset-password`,
+  });
+
+  const invitedUserId = invited?.user?.id;
+  if (inviteErr || !invitedUserId) {
+    // Supabase reports an existing auth user as "already been registered".
+    const dupe = /registered|already exists|email_exists/i.test(inviteErr?.message ?? '');
+    redirect(`/portal/clients/new?error=${dupe ? 'dupe' : '1'}`);
+  }
+
+  // Fill in the rest of the profile on the row the trigger just created/adopted.
+  const { data: clientRow } = await admin
+    .from('clients')
+    .update({
       full_name: full_name || null,
       phone: phone || null,
       date_of_birth: date_of_birth || null,
@@ -372,17 +403,23 @@ export async function createClient(formData: FormData) {
       discount_tier,
       marketing_consent,
     } as never)
+    .eq('auth_user_id', invitedUserId)
     .select('id')
     .single();
 
-  if (error) {
-    // 23505 = unique_violation (email already on file).
-    redirect(`/portal/clients/new?error=${error.code === '23505' ? 'dupe' : '1'}`);
+  const id = (clientRow as { id: string } | null)?.id;
+
+  // Add them to the inviting coach's clients (idempotent on re-invite).
+  if (id) {
+    await admin
+      .from('client_assignments')
+      .upsert({ client_id: id, staff_id: staff.id, is_active: true } as never, {
+        onConflict: 'client_id,staff_id',
+      });
   }
 
-  const id = (data as { id: string } | null)?.id;
   revalidatePath('/portal/clients');
-  redirect(id ? `/portal/clients/${id}?created=1` : '/portal/clients');
+  redirect(id ? `/portal/clients/${id}?invited=1` : '/portal/clients');
 }
 
 /** Archive a client: keep their data but drop them from active lists + portal. */
