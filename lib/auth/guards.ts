@@ -31,6 +31,23 @@ export const requireClient = cache(async () => {
 });
 
 /**
+ * Require a signed-in client whose account is ACTIVE (not archived). Use this in
+ * every member-initiated MUTATION (booking, cancel, profile edit, screening,
+ * file access). Archiving is meant to revoke portal access, but the account
+ * layout only enforces that when rendering pages — server actions are reachable
+ * directly (a replayed POST), so each one must re-check. Without this, an
+ * archived member could keep booking sessions, editing their profile, or minting
+ * signed URLs for their files by calling the actions straight from the browser
+ * console. Redirects archived / identity-less callers to /account, where the
+ * layout shows the "inactive" notice. Memoized per request.
+ */
+export const requireActiveClient = cache(async () => {
+  const { user, client } = await requireClient();
+  if (!client || client.archived_at) redirect('/account');
+  return { user, client };
+});
+
+/**
  * Require a signed-in staff member. Redirects to /login if not authenticated,
  * or to /account if signed in but not staff. Memoized per request.
  */
@@ -39,9 +56,18 @@ export const requireStaff = cache(async () => {
   const user = await getUser();
   if (!user) redirect('/login?next=/portal');
 
+  // Explicit column list (NOT select('*')): the authenticated role's table-wide
+  // SELECT on `staff` was revoked in 20260620110000, re-granting only these
+  // non-Google columns. PostgREST expands `*` to every column regardless of
+  // per-role column privileges, so a `select('*')` here would include the
+  // revoked google_calendar_* columns and fail the whole query (→ staff locked
+  // out of /portal). The two Google columns are read separately via the
+  // service-role client (app/portal/profile/page.tsx); nothing here needs them.
   const { data: staff } = await supabase
     .from('staff')
-    .select('*')
+    .select(
+      'id, auth_user_id, display_name, title, bio, credentials, is_active, created_at, updated_at',
+    )
     .eq('auth_user_id', user.id)
     .eq('is_active', true)
     .maybeSingle();

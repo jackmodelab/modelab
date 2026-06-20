@@ -1,0 +1,26 @@
+-- supabase/migrations/20260620100000_restrict_member_booking_writes.sql
+-- MODE Lab — remove the member's direct UPDATE path into `bookings` (SEC-2026-06-20).
+--
+-- 0001_initial_schema.sql created:
+--   create policy "bookings update own" on bookings for update
+--     using (client_id in (select id from clients where auth_user_id = auth.uid()));
+--
+-- That `for update using (...)` with no column restriction lets a signed-in
+-- member UPDATE *any* column of their own booking straight through the public
+-- anon/authenticated key (not just via our UI): move it to a different time or
+-- coach, flip the status to confirmed / completed / no_show, or rewrite the
+-- notes — bypassing the availability, lead-time and ownership checks the server
+-- actions enforce. (They still can't repoint a booking to another member: the
+-- USING is reused as the WITH CHECK, so the new row must remain theirs.)
+--
+-- The only legitimate member write is cancellation, which now runs through the
+-- service-role client AFTER an ownership + 24-hour-policy check
+-- (lib/account/actions.ts → cancelMemberBooking). So this broad self-update
+-- policy is no longer needed and is dropped here. Members keep read access
+-- ("bookings read own") and staff keep full control ("staff manage bookings").
+-- The booking-overlap EXCLUDE constraint (20260615130000) remains the hard
+-- backstop against double-booking a coach.
+--
+-- Idempotent: drop-if-exists, safe to re-run / partially apply.
+
+drop policy if exists "bookings update own" on bookings;

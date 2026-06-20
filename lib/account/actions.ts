@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { requireClient } from '@/lib/auth/guards';
+import { requireActiveClient } from '@/lib/auth/guards';
 import { createSupabaseAdmin, createSupabaseServer } from '@/lib/supabase/server';
 import { hasCompletedScreening } from '@/lib/screening/queries';
 import { removeBookingFromCalendar, syncBookingToCalendar } from '@/lib/google/booking-sync';
@@ -38,7 +38,7 @@ const IN_PERSON_SCREENING_NOTE = 'Pre-screening: to complete in person';
  * cancellation status and leaves sessions_remaining untouched).
  */
 export async function cancelMemberBooking(formData: FormData) {
-  const { client } = await requireClient();
+  const { client } = await requireActiveClient();
   if (!client) redirect('/login');
   const id = String(formData.get('id') ?? '');
   if (!id) return;
@@ -57,10 +57,18 @@ export async function cancelMemberBooking(formData: FormData) {
   const hoursAhead = (startsAt.getTime() - Date.now()) / 36e5;
   const status = hoursAhead >= 24 ? 'cancelled_24hr_plus' : 'cancelled_under_24hr';
 
-  await supabase
+  // Members have NO direct RLS write path into `bookings` (the "bookings update
+  // own" policy was dropped — see 20260620100000_restrict_member_booking_writes.sql)
+  // so a member can't arbitrarily rewrite their bookings (time, coach, status)
+  // via the public API. The cancel is performed with the service-role client
+  // AFTER the ownership + lead-time checks above, double-scoped to this member's
+  // own booking as a backstop.
+  const admin = createSupabaseAdmin();
+  await admin
     .from('bookings')
     .update({ status, cancellation_reason: 'Cancelled by member' } as never)
-    .eq('id', id);
+    .eq('id', id)
+    .eq('client_id', client.id);
 
   await removeBookingFromCalendar(id); // pull it off the coach's calendar
 
@@ -75,7 +83,7 @@ export async function cancelMemberBooking(formData: FormData) {
  * Google Calendar, the session is added to it (with the client invited).
  */
 export async function requestBooking(formData: FormData) {
-  const { client } = await requireClient();
+  const { client } = await requireActiveClient();
   if (!client) redirect('/login');
 
   // Pre-screening is recommended but optional: a member may instead choose to
@@ -193,7 +201,7 @@ export async function requestBooking(formData: FormData) {
  * only on acceptance.
  */
 export async function requestCustomBooking(formData: FormData) {
-  const { client } = await requireClient();
+  const { client } = await requireActiveClient();
   if (!client) redirect('/login');
 
   // Pre-screening is recommended but optional here too — see `requestBooking`.
@@ -262,7 +270,7 @@ export async function requestCustomBooking(formData: FormData) {
 export async function getMyDocumentSignedUrl(
   documentId: string,
 ): Promise<{ url: string } | { error: string }> {
-  const { client } = await requireClient();
+  const { client } = await requireActiveClient();
   if (!client) return { error: 'Please sign in.' };
   if (!documentId) return { error: 'Missing document.' };
 
@@ -286,7 +294,7 @@ export async function getMyDocumentSignedUrl(
 
 /** Save profile updates (name + phone). Email is auth-managed and read-only here. */
 export async function updateProfile(formData: FormData) {
-  const { client } = await requireClient();
+  const { client } = await requireActiveClient();
   if (!client) redirect('/login');
 
   const full_name = String(formData.get('full_name') ?? '').trim().slice(0, 120);

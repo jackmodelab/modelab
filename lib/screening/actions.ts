@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { requireClient } from '@/lib/auth/guards';
+import { requireActiveClient } from '@/lib/auth/guards';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import type { ScreeningAnswers } from '@/lib/screening/queries';
 
@@ -59,7 +59,7 @@ export async function submitScreening(
   _prevState: ScreeningActionState,
   formData: FormData
 ): Promise<ScreeningActionState> {
-  const { client } = await requireClient();
+  const { client } = await requireActiveClient();
   if (!client) {
     return { error: 'We are still setting up your profile. Please refresh and try again.' };
   }

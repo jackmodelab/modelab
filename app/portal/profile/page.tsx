@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { format, parseISO } from 'date-fns';
 import { requireStaff } from '@/lib/auth/guards';
+import { createSupabaseAdmin } from '@/lib/supabase/server';
 import { updateStaffProfile, disconnectGoogleCalendar } from '@/lib/portal/actions';
 import { signOut } from '@/lib/auth/actions';
 import { googleConfigured } from '@/lib/google/oauth';
@@ -27,9 +28,21 @@ export default async function StaffProfilePage({
   // The refresh token moved to the service-role-only staff_google_credentials
   // table, so it's no longer on `staff`. connected_at is set on connect and
   // cleared on disconnect, so it's the right "connected" signal here.
-  const googleConnected = Boolean(staff.google_calendar_connected_at);
-  const googleEmail = staff.google_calendar_email;
-  const connectedAt = staff.google_calendar_connected_at;
+  //
+  // google_calendar_email / _connected_at are no longer readable via the
+  // authenticated role (revoked in
+  // 20260620110000_staff_google_columns_authenticated.sql) so a signed-in member
+  // can't read a coach's connected Google address through the public REST API.
+  // Read them here with the service-role client, scoped to this coach's own row.
+  const admin = createSupabaseAdmin();
+  const { data: gcal } = await admin
+    .from('staff')
+    .select('google_calendar_email, google_calendar_connected_at')
+    .eq('id', staff.id)
+    .maybeSingle();
+  const googleConnected = Boolean(gcal?.google_calendar_connected_at);
+  const googleEmail = gcal?.google_calendar_email ?? null;
+  const connectedAt = gcal?.google_calendar_connected_at ?? null;
   const flash = sp?.google ? GOOGLE_FLASH[sp.google] : undefined;
   const memberSince = staff.created_at ? format(parseISO(staff.created_at), 'MMM yyyy') : '—';
   const { items: notifications } = await getStaffNotifications();
