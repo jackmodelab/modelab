@@ -21,6 +21,12 @@ export default async function MemberReportViewPage({
   const report = await getReport(id);
   if (!report || !client || report.client_id !== client.id) notFound();
 
+  // Belt-and-braces: only ever render a PUBLISHED + SHARED report to a member.
+  // RLS already enforces this, but re-checking in app code means a future RLS
+  // change can't silently expose an in-progress draft (which may contain
+  // unreviewed clinical interpretation) to the client.
+  if (report.status !== 'published' || !report.shared_with_client) notFound();
+
   const supabase = await createSupabaseServer();
   const { data: staffData } = report.author_staff_id
     ? await supabase.from('staff').select('display_name').eq('id', report.author_staff_id).maybeSingle()

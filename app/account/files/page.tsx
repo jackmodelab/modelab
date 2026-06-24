@@ -1,5 +1,5 @@
 import { format, parseISO } from 'date-fns';
-import { requireClient } from '@/lib/auth/guards';
+import { requireActiveClient } from '@/lib/auth/guards';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { FileDownload } from '@/components/portal/file-download';
 import { getMyDocumentSignedUrl } from '@/lib/account/actions';
@@ -8,7 +8,12 @@ import type { DocumentRow } from '@/types/database';
 export const metadata = { title: 'Files — MODE Lab' };
 
 export default async function MemberFilesPage() {
-  const { client } = await requireClient();
+  // requireActiveClient (not requireClient): an archived member has had portal
+  // access revoked, so they must not be able to list shared medical-file titles
+  // either. This matches getMyDocumentSignedUrl, which already requires an active
+  // client before minting a download URL. Archived/identity-less callers are
+  // redirected to /account, where the layout shows the "inactive" notice.
+  const { client } = await requireActiveClient();
 
   if (!client) {
     return (

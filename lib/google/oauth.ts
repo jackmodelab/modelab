@@ -80,7 +80,10 @@ export async function exchangeCodeForTokens(code: string, redirectUri: string): 
     }),
   });
   if (!res.ok) {
-    throw new Error(`Google token exchange failed (${res.status}): ${await res.text()}`);
+    // Don't inline Google's raw response body into the thrown error: it gets
+    // logged (callback route) and can echo request details / the client_id.
+    // The status is enough to diagnose; the user only ever sees `?google=error`.
+    throw new Error(`Google token exchange failed (${res.status})`);
   }
   return (await res.json()) as TokenResponse;
 }
@@ -98,7 +101,8 @@ export async function refreshAccessToken(refreshToken: string): Promise<string> 
     }),
   });
   if (!res.ok) {
-    throw new Error(`Google token refresh failed (${res.status}): ${await res.text()}`);
+    // See exchangeCodeForTokens: log the status, not Google's raw body.
+    throw new Error(`Google token refresh failed (${res.status})`);
   }
   const data = (await res.json()) as TokenResponse;
   return data.access_token;

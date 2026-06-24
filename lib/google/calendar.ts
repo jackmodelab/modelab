@@ -55,7 +55,7 @@ export async function createCalendarEvent(
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    throw new Error(`Calendar event create failed (${res.status}): ${await res.text()}`);
+    throw new Error(`Calendar event create failed (${res.status})`);
   }
   const event = (await res.json()) as { id: string };
   return event.id;
@@ -91,7 +91,7 @@ export async function updateCalendarEvent(
   });
   if (res.status === 404 || res.status === 410) return false;
   if (!res.ok) {
-    throw new Error(`Calendar event update failed (${res.status}): ${await res.text()}`);
+    throw new Error(`Calendar event update failed (${res.status})`);
   }
   return true;
 }
@@ -107,6 +107,6 @@ export async function deleteCalendarEvent(refreshToken: string, eventId: string)
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!res.ok && res.status !== 404 && res.status !== 410) {
-    throw new Error(`Calendar event delete failed (${res.status}): ${await res.text()}`);
+    throw new Error(`Calendar event delete failed (${res.status})`);
   }
 }

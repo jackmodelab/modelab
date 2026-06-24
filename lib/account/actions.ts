@@ -263,9 +263,12 @@ export async function requestCustomBooking(formData: FormData) {
 
 /**
  * Mint a short-lived signed URL for one of the signed-in client's own shared
- * documents. The `documents` RLS ("read own") already scopes reads to the
- * caller, so a row that isn't theirs simply returns null here. Returns
- * `{ url }` or `{ error }` (never throws) for a graceful download button.
+ * documents. Defense-in-depth: the `documents` RLS ("read own") already scopes
+ * reads to the caller, AND we additionally filter on `client_id = client.id`
+ * here so ownership is enforced in two independent layers (mirrors the
+ * cancelMemberBooking double-scope). If the RLS policy were ever loosened in a
+ * future migration, this app-level check still prevents an IDOR over other
+ * clients' medical files. Returns `{ url }` or `{ error }` (never throws).
  */
 export async function getMyDocumentSignedUrl(
   documentId: string,
@@ -279,6 +282,7 @@ export async function getMyDocumentSignedUrl(
     .from('documents')
     .select('storage_path')
     .eq('id', documentId)
+    .eq('client_id', client.id)
     .maybeSingle();
 
   const storagePath = (doc as { storage_path: string } | null)?.storage_path;

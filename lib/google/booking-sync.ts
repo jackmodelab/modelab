@@ -23,6 +23,26 @@ type BookingContext = {
 };
 
 /**
+ * Flatten a member-supplied string to a single safe line: drop control
+ * characters and collapse whitespace. The calendar event description is built by
+ * joining labelled lines with "\n", so without this a member could put newlines
+ * in their name/phone/notes to forge extra "fields" (e.g. a fake
+ * "Client: someone-else" line) in the coach's calendar event. Cosmetic-spoofing
+ * defence — values are sent to Google as JSON, so there is no API injection.
+ * Uses a codepoint check (codepoints 0–31 and 127) rather than a regex range so
+ * this source file contains no literal control bytes.
+ */
+function oneLine(value: string | null | undefined): string {
+  const stripped = Array.from(value ?? '')
+    .filter((ch) => {
+      const code = ch.codePointAt(0) ?? 0;
+      return code > 31 && code !== 127;
+    })
+    .join('');
+  return stripped.replace(/\s+/g, ' ').trim();
+}
+
+/**
  * Load everything needed to build a calendar event for a booking. Returns null
  * when Google isn't configured, the booking is missing, or the coach hasn't
  * connected their calendar — i.e. there's nothing to sync.
@@ -48,7 +68,12 @@ async function loadBookingContext(bookingId: string): Promise<BookingContext | n
 
   if (!refreshToken) return null; // coach hasn't connected their calendar
 
-  const clientName = client?.full_name?.trim() || client?.email || 'Client';
+  // Member-controlled fields (name, email, phone, notes) are embedded line-by-line
+  // in the description below; oneLine() neutralises newline-injection spoofing.
+  const clientName = oneLine(client?.full_name) || client?.email || 'Client';
+  const clientEmail = oneLine(client?.email);
+  const clientPhone = oneLine(client?.phone);
+  const bookingNotes = oneLine(booking.notes);
   const serviceName = service?.name || 'Training session';
   const locationLabel = location
     ? [location.name, location.address || location.suburb].filter(Boolean).join(', ') || undefined
@@ -56,10 +81,10 @@ async function loadBookingContext(bookingId: string): Promise<BookingContext | n
 
   const description = [
     `Client: ${clientName}`,
-    client?.email ? `Email: ${client.email}` : null,
-    client?.phone ? `Phone: ${client.phone}` : null,
+    clientEmail ? `Email: ${clientEmail}` : null,
+    clientPhone ? `Phone: ${clientPhone}` : null,
     `Service: ${serviceName}`,
-    booking.notes ? `Notes: ${booking.notes}` : null,
+    bookingNotes ? `Notes: ${bookingNotes}` : null,
     '',
     'Booked via MODE Lab.',
   ]
